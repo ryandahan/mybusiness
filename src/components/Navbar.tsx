@@ -1,0 +1,195 @@
+"use client";
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { useSession, signOut } from 'next-auth/react';
+import { Menu, X, User, LogOut, Settings } from 'lucide-react';
+
+export default function Navbar() {
+  const { data: session, status } = useSession();
+  const [menuOpen, setMenuOpen] = useState(false);
+  
+  const isAdmin = session?.user?.role === 'admin';
+  
+  return (
+    <nav className="bg-white shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between h-16">
+          <div className="flex">
+            <div className="flex-shrink-0 flex items-center">
+              <Link href="/" className="text-blue-600 text-xl font-bold">
+                Store Transitions
+              </Link>
+            </div>
+            <div className="hidden sm:ml-6 sm:flex sm:space-x-6">
+              <Link 
+                href="/map" 
+                className="inline-flex items-center px-1 pt-1 text-gray-900 hover:text-blue-600"
+              >
+                Find Stores
+              </Link>
+              <Link 
+                href="/submit" 
+                className="inline-flex items-center px-1 pt-1 text-gray-900 hover:text-blue-600"
+              >
+                List Your Store
+              </Link>
+              <Link 
+                href="/about" 
+                className="inline-flex items-center px-1 pt-1 text-gray-900 hover:text-blue-600"
+              >
+                About
+              </Link>
+              <Link 
+                href="/contact" 
+                className="inline-flex items-center px-1 pt-1 text-gray-900 hover:text-blue-600"
+              >
+                Contact
+              </Link>
+              
+              {/* Admin link - only visible to admin users */}
+              {isAdmin && (
+                <Link 
+                  href="/admin/stores" 
+                  className="inline-flex items-center px-1 pt-1 text-red-600 font-medium hover:text-red-800"
+                >
+                  Admin Dashboard
+                </Link>
+              )}
+            </div>
+          </div>
+          
+          <div className="hidden sm:ml-6 sm:flex sm:items-center">
+            {status === 'authenticated' ? (
+              <div className="relative ml-3">
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm font-medium text-gray-700">
+                    Hi, {session.user.name || session.user.email}
+                  </span>
+                  <button
+                    onClick={() => signOut()}
+                    className="flex items-center text-gray-700 hover:text-red-600"
+                  >
+                    <LogOut size={18} className="mr-1" /> Logout
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex space-x-4">
+                <Link
+                  href="/login"
+                  className="text-gray-700 hover:text-blue-600 flex items-center"
+                >
+                  <User size={18} className="mr-1" /> Login
+                </Link>
+                <Link
+                  href="/register"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                >
+                  Sign Up
+                </Link>
+              </div>
+            )}
+          </div>
+          
+          <div className="-mr-2 flex items-center sm:hidden">
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+            >
+              <span className="sr-only">Open main menu</span>
+              {menuOpen ? (
+                <X className="block h-6 w-6" aria-hidden="true" />
+              ) : (
+                <Menu className="block h-6 w-6" aria-hidden="true" />
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile menu */}
+      {menuOpen && (
+        <div className="sm:hidden">
+          <div className="pt-2 pb-3 space-y-1">
+            <Link
+              href="/map"
+              className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800"
+              onClick={() => setMenuOpen(false)}
+            >
+              Find Stores
+            </Link>
+            <Link
+              href="/submit"
+              className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800"
+              onClick={() => setMenuOpen(false)}
+            >
+              List Your Store
+            </Link>
+            <Link
+              href="/about"
+              className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800"
+              onClick={() => setMenuOpen(false)}
+            >
+              About
+            </Link>
+            <Link
+              href="/contact"
+              className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800"
+              onClick={() => setMenuOpen(false)}
+            >
+              Contact
+            </Link>
+            
+            {/* Admin link for mobile - only visible to admin users */}
+            {isAdmin && (
+              <Link
+                href="/admin/stores"
+                className="block pl-3 pr-4 py-2 border-l-4 border-red-400 text-base font-medium text-red-700 bg-red-50"
+                onClick={() => setMenuOpen(false)}
+              >
+                Admin Dashboard
+              </Link>
+            )}
+          </div>
+          
+          <div className="pt-4 pb-3 border-t border-gray-200">
+            {status === 'authenticated' ? (
+              <div className="space-y-1">
+                <div className="px-4 py-2 text-sm text-gray-700">
+                  {session.user.name || session.user.email}
+                </div>
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    signOut();
+                  }}
+                  className="block w-full text-left px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <Link
+                  href="/login"
+                  className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/register"
+                  className="block px-4 py-2 text-base font-medium text-blue-600 hover:text-blue-800"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Sign Up
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </nav>
+  );
+}

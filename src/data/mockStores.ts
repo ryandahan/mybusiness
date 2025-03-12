@@ -1,0 +1,68 @@
+// src/data/mockStores.ts
+import { StoreData } from '@/types/store';
+
+export const mockStores: StoreData[] = [
+  {
+    id: '1',
+    businessName: 'Fashion Outlet',
+    category: 'Clothing & Apparel',
+    address: '123 Main St',
+    city: 'Chicago',
+    state: 'IL',
+    zipCode: '60601',
+    phone: '(312) 555-1234',
+    email: 'contact@fashionoutlet.com',
+    website: 'https://fashionoutlet.com',
+    closingDate: '2023-12-31',
+    discountPercentage: 50,
+    inventoryDescription: 'All clothing, shoes, and accessories',
+    reasonForClosing: 'Lease ending',
+    ownerName: 'Jane Smith',
+    contactPreference: 'email',
+    latitude: 41.8781,
+    longitude: -87.6298,
+    isApproved: true,
+    createdAt: '2023-10-01'
+  },
+  {
+    id: '2',
+    businessName: 'Tech Haven',
+    category: 'Electronics',
+    address: '456 Market St',
+    city: 'San Francisco',
+    state: 'CA',
+    zipCode: '94103',
+    phone: '(415) 555-5678',
+    email: 'info@techhaven.com',
+    closingDate: '2023-11-15',
+    discountPercentage: 40,
+    inventoryDescription: 'Computers, phones, cameras, and accessories',
+    ownerName: 'John Doe',
+    contactPreference: 'phone',
+    latitude: 37.7749,
+    longitude: -122.4194,
+    isApproved: true,
+    createdAt: '2023-09-15'
+  },
+  {
+    id: '3',
+    businessName: 'Home Goods Plus',
+    category: 'Home Goods',
+    address: '789 Newbury St',
+    city: 'Boston',
+    state: 'MA',
+    zipCode: '02116',
+    phone: '(617) 555-9012',
+    email: 'sales@homegoodsplus.com',
+    closingDate: '2024-01-15',
+    discountPercentage: 35,
+    inventoryDescription: 'Furniture, kitchenware, and home decor',
+    reasonForClosing: 'Retirement',
+    ownerName: 'Mary Johnson',
+    contactPreference: 'email',
+    latitude: 42.3601,
+    longitude: -71.0589,
+    isApproved: true,
+    createdAt: '2023-10-10'
+  }
+];
