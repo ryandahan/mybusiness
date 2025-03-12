@@ -1,7 +1,9 @@
 "use client"
-import React, { useState, ChangeEvent, FormEvent } from 'react';
-import Link from 'next/link'; // Added Link import
-import { Calendar, Clock, MapPin, Building, Tag, Image, Phone, Mail, Info, Check } from 'lucide-react';
+import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
+import Link from 'next/link';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { Calendar, Clock, MapPin, Building, Tag, Image, Phone, Mail, Info, Check, User, Store } from 'lucide-react';
 
 interface FormData {
   businessName: string;
@@ -24,7 +26,22 @@ interface FormData {
   agreedToTerms: boolean;
 }
 
+// For guest tip submissions
+interface GuestTipData {
+  storeName: string;
+  category: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  storeImage: File | null;
+  submitterEmail: string;
+}
+
 export default function SubmitPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [userType, setUserType] = useState<'undecided' | 'owner' | 'guest'>('undecided');
   const [formData, setFormData] = useState<FormData>({
     businessName: '',
     category: '',
@@ -46,6 +63,17 @@ export default function SubmitPage() {
     agreedToTerms: false
   });
   
+  const [guestTipData, setGuestTipData] = useState<GuestTipData>({
+    storeName: '',
+    category: '',
+    address: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    storeImage: null,
+    submitterEmail: ''
+  });
+  
   const [formStep, setFormStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -65,11 +93,26 @@ export default function SubmitPage() {
     'Restaurant',
     'Other'
   ];
+
+  // Check authentication when page loads
+  useEffect(() => {
+    if (status === 'authenticated') {
+      setUserType('owner');
+    }
+  }, [status]);
   
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
+      [name]: value
+    });
+  };
+
+  const handleGuestTextChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setGuestTipData({
+      ...guestTipData,
       [name]: value
     });
   };
@@ -87,6 +130,15 @@ export default function SubmitPage() {
     const file = files?.[0] || null;
     setFormData({
       ...formData,
+      [name]: file
+    });
+  };
+
+  const handleGuestFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, files } = e.target;
+    const file = files?.[0] || null;
+    setGuestTipData({
+      ...guestTipData,
       [name]: file
     });
   };
@@ -171,10 +223,54 @@ export default function SubmitPage() {
       setErrorMessage(error instanceof Error ? error.message : 'An unknown error occurred');
     }
   };
+
+  const handleGuestSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setErrorMessage(null);
+    
+    try {
+      const submitData = new FormData();
+      
+      submitData.append('storeName', guestTipData.storeName);
+      submitData.append('category', guestTipData.category);
+      submitData.append('address', guestTipData.address);
+      submitData.append('city', guestTipData.city);
+      submitData.append('state', guestTipData.state);
+      submitData.append('zipCode', guestTipData.zipCode);
+      submitData.append('submitterEmail', guestTipData.submitterEmail);
+      
+      if (guestTipData.storeImage) {
+        submitData.append('storeImage', guestTipData.storeImage);
+      }
+      
+      console.log('Submitting guest tip data...');
+      
+      const response = await fetch('/api/store-tips', { // Different endpoint for guest tips
+        method: 'POST',
+        body: submitData
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to submit store tip');
+      }
+      
+      setIsSubmitting(false);
+      setIsSubmitted(true);
+      
+    } catch (error) {
+      console.error('Error submitting store tip:', error);
+      setIsSubmitting(false);
+      setErrorMessage(error instanceof Error ? error.message : 'An unknown error occurred');
+    }
+  };
   
   const nextStep = () => setFormStep(formStep + 1);
   const prevStep = () => setFormStep(formStep - 1);
   
+  // Display the submission success page
   if (isSubmitted) {
     return (
       <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
@@ -184,40 +280,54 @@ export default function SubmitPage() {
           </div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Thank You!</h2>
           <p className="text-lg text-gray-600 mb-6">
-            Your store has been submitted successfully. Our team will review your information and contact you within 1-2 business days.
+            {userType === 'owner' 
+              ? 'Your store has been submitted successfully. Our team will review your information and contact you within 1-2 business days.'
+              : 'Your store tip has been submitted successfully. Our team will review the information.'}
           </p>
           <div className="mt-6 flex flex-col sm:flex-row justify-center gap-4">
             <button
               onClick={() => {
                 setIsSubmitted(false);
                 setFormStep(1);
-                setFormData({
-                  businessName: '',
-                  category: '',
-                  address: '',
-                  city: '',
-                  state: '',
-                  zipCode: '',
-                  phone: '',
-                  email: '',
-                  website: '',
-                  closingDate: '',
-                  discountPercentage: '',
-                  inventoryDescription: '',
-                  reasonForClosing: '',
-                  ownerName: '',
-                  contactPreference: 'email',
-                  storeImage: null,
-                  verificationDocuments: null,
-                  agreedToTerms: false
-                });
+                if (userType === 'owner') {
+                  setFormData({
+                    businessName: '',
+                    category: '',
+                    address: '',
+                    city: '',
+                    state: '',
+                    zipCode: '',
+                    phone: '',
+                    email: '',
+                    website: '',
+                    closingDate: '',
+                    discountPercentage: '',
+                    inventoryDescription: '',
+                    reasonForClosing: '',
+                    ownerName: '',
+                    contactPreference: 'email',
+                    storeImage: null,
+                    verificationDocuments: null,
+                    agreedToTerms: false
+                  });
+                } else {
+                  setGuestTipData({
+                    storeName: '',
+                    category: '',
+                    address: '',
+                    city: '',
+                    state: '',
+                    zipCode: '',
+                    storeImage: null,
+                    submitterEmail: ''
+                  });
+                }
               }}
               className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              Submit Another Store
+              {userType === 'owner' ? 'Submit Another Store' : 'Submit Another Tip'}
             </button>
             
-            {/* Added Return to Home button */}
             <Link 
               href="/" 
               className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
@@ -229,7 +339,309 @@ export default function SubmitPage() {
       </div>
     );
   }
-  
+
+  // Show user type selection if not decided yet
+  if (userType === 'undecided') {
+    return (
+      <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
+        <h1 className="text-2xl font-bold text-center mb-6">
+          Submit Your Closing Store
+        </h1>
+
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-center">
+          <p className="text-blue-800">
+            Please select how you would like to proceed:
+          </p>
+        </div>
+        
+        <div className="grid md:grid-cols-2 gap-6 mb-6">
+          {/* Store Owner Option */}
+          <div 
+            onClick={() => {
+              if (status === 'unauthenticated') {
+                // Redirect to login if not authenticated
+                router.push('/login?callbackUrl=/submit');
+              } else {
+                setUserType('owner');
+              }
+            }} 
+            className="border rounded-lg p-6 hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-colors"
+          >
+            <div className="flex justify-center mb-4">
+              <Store size={48} className="text-blue-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-center mb-2">I'm a Store Owner</h3>
+            <p className="text-gray-600 text-center">
+              Submit your closing store details for approval and listing on our platform.
+            </p>
+            <p className="text-sm text-blue-600 font-medium text-center mt-4">
+              {status === 'unauthenticated' ? '(Requires account login)' : ''}
+            </p>
+          </div>
+          
+          {/* Guest Option */}
+          <div 
+            onClick={() => setUserType('guest')} 
+            className="border rounded-lg p-6 hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-colors"
+          >
+            <div className="flex justify-center mb-4">
+              <User size={48} className="text-blue-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-center mb-2">I'm a Shopper</h3>
+            <p className="text-gray-600 text-center">
+              Let us know about a closing store you've spotted to help others find great deals.
+            </p>
+            <p className="text-sm text-blue-600 font-medium text-center mt-4">
+              No account required
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // If user is not authenticated but trying to submit as owner, redirect to login
+  if (userType === 'owner' && status === 'unauthenticated') {
+    return (
+      <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
+        <h1 className="text-2xl font-bold text-center mb-6">
+          Authentication Required
+        </h1>
+        
+        <div className="p-8 bg-blue-50 border border-blue-200 rounded-lg text-center mb-6">
+          <h2 className="text-xl font-semibold text-blue-800 mb-4">
+            Please create an account or sign in
+          </h2>
+          <p className="text-gray-700 mb-6">
+            You need to have an account and be logged in to submit your store for listing.
+            This helps us verify store ownership and manage your listings.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <Link 
+              href="/register" 
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Create an Account
+            </Link>
+            <Link 
+              href="/login?callbackUrl=/submit" 
+              className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            >
+              Sign In
+            </Link>
+          </div>
+        </div>
+        
+        <div className="flex justify-between">
+          <button
+            type="button"
+            onClick={() => setUserType('undecided')}
+            className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+          >
+            Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Guest tip submission form
+  if (userType === 'guest') {
+    return (
+      <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
+        <h1 className="text-2xl font-bold text-center mb-6">
+          Submit a Closing Store Tip
+        </h1>
+        
+        {errorMessage && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+            {errorMessage}
+          </div>
+        )}
+        
+        <form onSubmit={handleGuestSubmit}>
+          <div className="mb-4">
+            <label htmlFor="storeName" className="block text-sm font-medium text-gray-700 mb-1">
+              Store Name <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <Building size={18} className="text-gray-500" />
+              </div>
+              <input
+                type="text"
+                id="storeName"
+                name="storeName"
+                value={guestTipData.storeName}
+                onChange={handleGuestTextChange}
+                className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                placeholder="e.g., Fashion Outlet"
+                required
+              />
+            </div>
+          </div>
+          
+          <div className="mb-4">
+            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+              Category <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <Tag size={18} className="text-gray-500" />
+              </div>
+              <select
+                id="category"
+                name="category"
+                value={guestTipData.category}
+                onChange={handleGuestTextChange}
+                className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white"
+                required
+              >
+                <option value="">Select Category</option>
+                {categories.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          <div className="mb-4">
+            <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+              Street Address <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <MapPin size={18} className="text-gray-500" />
+              </div>
+              <input
+                type="text"
+                id="address"
+                name="address"
+                value={guestTipData.address}
+                onChange={handleGuestTextChange}
+                className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                placeholder="123 Main St"
+                required
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="mb-4">
+              <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
+                City <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="city"
+                name="city"
+                value={guestTipData.city}
+                onChange={handleGuestTextChange}
+                className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Anytown"
+                required
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2">
+              <div className="mb-4">
+                <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">
+                  State <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="state"
+                  name="state"
+                  value={guestTipData.state}
+                  onChange={handleGuestTextChange}
+                  className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="CA"
+                  maxLength={2}
+                  required
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700 mb-1">
+                  Zip Code <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="zipCode"
+                  name="zipCode"
+                  value={guestTipData.zipCode}
+                  onChange={handleGuestTextChange}
+                  className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="90210"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div className="mb-4">
+            <label htmlFor="submitterEmail" className="block text-sm font-medium text-gray-700 mb-1">
+              Your Email <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <Mail size={18} className="text-gray-500" />
+              </div>
+              <input
+                type="email"
+                id="submitterEmail"
+                name="submitterEmail"
+                value={guestTipData.submitterEmail}
+                onChange={handleGuestTextChange}
+                className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                placeholder="your.email@example.com"
+                required
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Used only to contact you if we need more information.</p>
+          </div>
+          
+          <div className="mb-4">
+            <label htmlFor="storeImage" className="block text-sm font-medium text-gray-700 mb-1">
+              Store Image
+            </label>
+            <input
+              type="file"
+              id="storeImage"
+              name="storeImage"
+              onChange={handleGuestFileChange}
+              accept="image/*"
+              className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+          </div>
+          
+          <div className="flex justify-between mt-6">
+            <button
+              type="button"
+              onClick={() => setUserType('undecided')}
+              className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            >
+              Back
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className={`bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit Tip'}
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  }
+
+  // The original multi-step form for authenticated store owners  
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
       <h1 className="text-2xl font-bold text-center mb-6">
@@ -444,7 +856,13 @@ export default function SubmitPage() {
             </div>
             
             <div className="mt-6 flex justify-between">
-              <div></div>
+              <button
+                type="button"
+                onClick={() => setUserType('undecided')}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                Back
+              </button>
               <button
                 type="button"
                 onClick={nextStep}

@@ -2,11 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, CheckCircle, XCircle, Phone, Mail, Calendar, Tag, MapPin } from 'lucide-react';
 import DocumentViewer from '@/components/DocumentViewer';
-import { use } from 'react';
 
 interface StoreDetails {
   id: string;
@@ -27,7 +26,7 @@ interface StoreDetails {
   contactPreference: string;
   storeImageUrl: string | null;
   verificationDocUrl: string | null;
-  verificationDocPath?: string;
+  documentKey?: string;
   latitude: number | null;
   longitude: number | null;
   isApproved: boolean;
@@ -35,26 +34,29 @@ interface StoreDetails {
   updatedAt: string;
 }
 
-export default function StoreDetailPage({ params }: { params: { id: string } }) {
+export default function StoreDetailPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const params = useParams();
   const [store, setStore] = useState<StoreDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  const storeId = params.id;
+  const storeId = Array.isArray(params?.id) ? params.id[0] : params?.id;
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.role !== 'admin') {
       router.push('/');
     }
     
-    if (status === 'authenticated' && session?.user?.role === 'admin') {
+    if (status === 'authenticated' && session?.user?.role === 'admin' && storeId) {
       fetchStoreDetails();
     }
   }, [status, session, router, storeId]);
 
   const fetchStoreDetails = async () => {
+    if (!storeId) return;
+    
     try {
       const response = await fetch(`/api/admin/stores/${storeId}`);
       if (response.ok) {
@@ -72,6 +74,8 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
   };
 
   const approveStore = async () => {
+    if (!storeId) return;
+    
     try {
       const response = await fetch(`/api/admin/stores/${storeId}/approve`, {
         method: 'PUT',
@@ -86,6 +90,8 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
   };
 
   const rejectStore = async () => {
+    if (!storeId) return;
+    
     if (confirm('Are you sure you want to reject this store?')) {
       try {
         const response = await fetch(`/api/admin/stores/${storeId}/reject`, {
@@ -242,7 +248,7 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
           </div>
         </div>
 
-        {(store.storeImageUrl || store.verificationDocUrl || store.verificationDocPath) && (
+        {(store.storeImageUrl || store.verificationDocUrl) && (
           <div className="mt-6 pt-4 border-t border-gray-200">
             <h2 className="text-lg font-semibold mb-3">Uploaded Files</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -260,7 +266,7 @@ export default function StoreDetailPage({ params }: { params: { id: string } }) 
               <div>
                 <p className="font-medium mb-2">Verification Document</p>
                 <DocumentViewer 
-                  documentKey={store.verificationDocPath} 
+                  documentKey={store.documentKey} 
                   fallbackUrl={store.verificationDocUrl} 
                 />
               </div>

@@ -5,6 +5,12 @@ import { authOptions } from '@/lib/auth';
 
 const prisma = new PrismaClient();
 
+// Define an extended type that includes documentKey
+interface EnhancedStore {
+  documentKey?: string;
+  [key: string]: any; // This allows any other properties from the original store
+}
+
 export async function GET(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -25,8 +31,21 @@ export async function GET(
     if (!store) {
       return NextResponse.json({ error: 'Store not found' }, { status: 404 });
     }
+
+    // Create enhanced store with proper typing
+    const enhancedStore: EnhancedStore = { ...store };
     
-    return NextResponse.json(store);
+    if (store.verificationDocUrl) {
+      try {
+        const url = new URL(store.verificationDocUrl);
+        const pathParts = url.pathname.split('/');
+        const documentKey = pathParts[pathParts.length - 1];
+        
+        enhancedStore.documentKey = documentKey;
+      } catch (err) {}
+    }
+    
+    return NextResponse.json(enhancedStore);
   } catch (error) {
     console.error('Error fetching store details:', error);
     return NextResponse.json({ error: 'An error occurred' }, { status: 500 });

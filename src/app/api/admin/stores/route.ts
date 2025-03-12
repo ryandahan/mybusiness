@@ -13,9 +13,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Fetch stores from database (default to pending stores)
+    // Get status parameter from URL (pending or approved)
+    const url = new URL(req.url);
+    const status = url.searchParams.get('status') || 'pending';
+    
+    // Set isApproved filter based on status
+    const isApproved = status === 'approved';
+    
+    // Fetch stores from database based on approval status
     const stores = await prisma.store.findMany({
-      where: { isApproved: false },
+      where: { isApproved },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,

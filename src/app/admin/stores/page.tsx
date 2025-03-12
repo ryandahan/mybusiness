@@ -22,6 +22,7 @@ export default function AdminStoresPage() {
   const router = useRouter();
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState('pending'); // 'pending' or 'approved'
   
   useEffect(() => {
     // Redirect if not admin
@@ -30,19 +31,39 @@ export default function AdminStoresPage() {
     }
     
     if (status === 'authenticated' && session?.user?.role === 'admin') {
-      fetchPendingStores();
+      if (viewMode === 'pending') {
+        fetchPendingStores();
+      } else {
+        fetchApprovedStores();
+      }
     }
-  }, [status, session, router]);
+  }, [status, session, router, viewMode]);
   
   const fetchPendingStores = async () => {
     try {
-      const response = await fetch('/api/admin/stores');
+      setLoading(true);
+      const response = await fetch('/api/admin/stores?status=pending');
       if (response.ok) {
         const data = await response.json();
         setStores(data);
       }
     } catch (error) {
-      console.error('Error fetching stores:', error);
+      console.error('Error fetching pending stores:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const fetchApprovedStores = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/stores?status=approved');
+      if (response.ok) {
+        const data = await response.json();
+        setStores(data);
+      }
+    } catch (error) {
+      console.error('Error fetching approved stores:', error);
     } finally {
       setLoading(false);
     }
@@ -59,6 +80,8 @@ export default function AdminStoresPage() {
         setStores(stores.map(store => 
           store.id === id ? { ...store, isApproved: true } : store
         ));
+        // Refresh the list
+        fetchPendingStores();
       }
     } catch (error) {
       console.error('Error approving store:', error);
@@ -91,6 +114,27 @@ export default function AdminStoresPage() {
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">Store Approval Dashboard</h1>
+      
+      <div className="flex mb-4">
+        <button 
+          className="px-4 py-2 mr-2 rounded bg-gray-200 hover:bg-gray-300"
+          onClick={() => router.push('/')}
+        >
+          Back to Main Page
+        </button>
+        <button 
+          className={`px-4 py-2 rounded ${viewMode === 'approved' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+          onClick={() => setViewMode('approved')}
+        >
+          Approved Stores
+        </button>
+        <button 
+          className={`px-4 py-2 ml-2 rounded ${viewMode === 'pending' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+          onClick={() => setViewMode('pending')}
+        >
+          Pending Stores
+        </button>
+      </div>
       
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
@@ -139,21 +183,29 @@ export default function AdminStoresPage() {
                     <button
                       onClick={() => router.push(`/admin/stores/${store.id}`)}
                       className="text-blue-600 hover:text-blue-800"
+                      title="View Details"
                     >
                       <Eye size={18} />
                     </button>
-                    <button
-                      onClick={() => approveStore(store.id)}
-                      className="text-green-600 hover:text-green-800"
-                    >
-                      <Check size={18} />
-                    </button>
-                    <button
-                      onClick={() => rejectStore(store.id)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      <X size={18} />
-                    </button>
+                    
+                    {viewMode === 'pending' && (
+                      <>
+                        <button
+                          onClick={() => approveStore(store.id)}
+                          className="text-green-600 hover:text-green-800"
+                          title="Approve"
+                        >
+                          <Check size={18} />
+                        </button>
+                        <button
+                          onClick={() => rejectStore(store.id)}
+                          className="text-red-600 hover:text-red-800"
+                          title="Reject"
+                        >
+                          <X size={18} />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -162,7 +214,9 @@ export default function AdminStoresPage() {
             {stores.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
-                  No pending stores to approve
+                  {viewMode === 'pending' 
+                    ? 'No pending stores to approve' 
+                    : 'No approved stores found'}
                 </td>
               </tr>
             )}
