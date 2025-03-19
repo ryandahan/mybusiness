@@ -20,64 +20,50 @@ export default function DocumentViewer({ documentKey, fallbackUrl }: DocumentVie
         setLoading(true);
         setDebugInfo(`Starting document load process`);
         
-        // First try direct URL if available
-        if (fallbackUrl) {
-          setDebugInfo(debugInfo + ` | Found fallbackUrl: ${fallbackUrl}`);
+        if (documentKey) {
+          setDebugInfo(prevInfo => prevInfo + ` | Using secure API with documentKey: ${documentKey}`);
+          
           try {
-            const response = await fetch(fallbackUrl, { method: 'HEAD' });
-            if (response.ok) {
-              setDocumentUrl(fallbackUrl);
-              setDebugInfo(debugInfo + ' | Fallback URL successful');
+            const apiResponse = await fetch(`/api/documents/${encodeURIComponent(documentKey)}`);
+            
+            if (!apiResponse.ok) {
+              const errorData = await apiResponse.json();
+              throw new Error(`API error: ${apiResponse.status} - ${errorData.error || 'Unknown error'}`);
+            }
+            
+            const data = await apiResponse.json();
+            
+            if (data.url) {
+              setDocumentUrl(data.url);
+              setDebugInfo(prevInfo => prevInfo + ' | API access successful');
               setLoading(false);
               return;
-            } else {
-              setDebugInfo(debugInfo + ` | Fallback URL returned ${response.status}`);
             }
           } catch (err) {
-            setDebugInfo(debugInfo + ` | Error accessing fallbackUrl: ${err instanceof Error ? err.message : String(err)}`);
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            setDebugInfo(prevInfo => prevInfo + ` | API error: ${errorMessage}`);
+            
+            if (fallbackUrl) {
+              setDebugInfo(prevInfo => prevInfo + ` | Trying fallback URL`);
+            }
           }
         }
         
-        // If we have a document key, try to construct direct S3 URL
-        if (documentKey) {
-          setDebugInfo(debugInfo + ` | Using documentKey: ${documentKey}`);
-          
-          // Try a few different S3 URL patterns (some may work depending on your setup)
-          const baseUrls = [
-            'https://store-transition.s3.us-east-2.amazonaws.com/',
-            'https://store-transition.s3.amazonaws.com/'
-          ];
-          
-          for (const baseUrl of baseUrls) {
-            const fullUrl = baseUrl + encodeURIComponent(documentKey);
-            setDebugInfo(debugInfo + ` | Trying S3 URL: ${fullUrl}`);
-            
-            try {
-              const response = await fetch(fullUrl, { method: 'HEAD' });
-              if (response.ok) {
-                setDocumentUrl(fullUrl);
-                setDebugInfo(debugInfo + ' | S3 access successful');
-                setLoading(false);
-                return;
-              } else {
-                setDebugInfo(debugInfo + ` | S3 access error: ${response.status}`);
-              }
-            } catch (err) {
-              setDebugInfo(debugInfo + ` | Error fetching from S3: ${err instanceof Error ? err.message : String(err)}`);
-            }
-          }
-          
-          // If we get here, we couldn't access the document with the provided key
-          setError('Document not accessible');
-        } else if (!fallbackUrl) {
-          // If we have neither a key nor URL
+        if (fallbackUrl) {
+          setDebugInfo(prevInfo => prevInfo + ` | Using fallbackUrl: ${fallbackUrl}`);
+          setDocumentUrl(fallbackUrl);
+          setLoading(false);
+          return;
+        }
+        
+        if (!documentKey && !fallbackUrl) {
           setError('No document available');
-          setDebugInfo(debugInfo + ' | No document key or URL provided');
+          setDebugInfo(prevInfo => prevInfo + ' | No document key or URL provided');
         }
       } catch (err) {
         console.error('Error in document viewer:', err);
         setError('Failed to access document.');
-        setDebugInfo(debugInfo + ` | General error: ${err instanceof Error ? err.message : String(err)}`);
+        setDebugInfo(prevInfo => prevInfo + ` | General error: ${err instanceof Error ? err.message : String(err)}`);
       } finally {
         setLoading(false);
       }

@@ -30,6 +30,7 @@ model Store {
   latitude            Float?
   longitude           Float?
   isApproved          Boolean  @default(false)
+  isFeatured          Boolean  @default(false)  // New field added here
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
   userId              String?
@@ -47,4 +48,23 @@ model User {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   stores            Store[]
+}
+
+model StoreTip {
+  id                String   @id @default(cuid())
+  storeName         String
+  category          String
+  address           String
+  city              String
+  state             String
+  zipCode           String
+  submitterEmail    String
+  storeImageUrl     String?
+  discountPercentage Int?
+  latitude          Float?
+  longitude         Float?
+  status            String   @default("pending") 
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }

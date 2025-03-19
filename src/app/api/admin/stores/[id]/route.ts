@@ -22,32 +22,46 @@ export async function GET(
     }
     
     const params = await context.params;
-    const storeId = params.id;
+    const id = params.id;
     
+    // Try to find in Store first
     const store = await prisma.store.findUnique({
-      where: { id: storeId }
+      where: { id }
     });
     
-    if (!store) {
-      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
+    if (store) {
+      // Process store record
+      const enhancedStore: any = { ...store, isStoreTip: false };
+      
+      if (store.verificationDocUrl) {
+        try {
+          const url = new URL(store.verificationDocUrl);
+          const pathParts = url.pathname.split('/');
+          const documentKey = pathParts[pathParts.length - 1];
+          enhancedStore.documentKey = documentKey;
+        } catch (err) {}
+      }
+      
+      return NextResponse.json(enhancedStore);
     }
-
-    // Create enhanced store with proper typing
-    const enhancedStore: EnhancedStore = { ...store };
     
-    if (store.verificationDocUrl) {
-      try {
-        const url = new URL(store.verificationDocUrl);
-        const pathParts = url.pathname.split('/');
-        const documentKey = pathParts[pathParts.length - 1];
-        
-        enhancedStore.documentKey = documentKey;
-      } catch (err) {}
+    // If not in Store, check StoreTip
+    const storeTip = await prisma.storeTip.findUnique({
+      where: { id }
+    });
+    
+    if (storeTip) {
+      const enhancedTip = {
+        ...storeTip,
+        isStoreTip: true
+      };
+      
+      return NextResponse.json(enhancedTip);
     }
     
-    return NextResponse.json(enhancedStore);
+    return NextResponse.json({ error: 'Record not found' }, { status: 404 });
   } catch (error) {
-    console.error('Error fetching store details:', error);
+    console.error('Error fetching record details:', error);
     return NextResponse.json({ error: 'An error occurred' }, { status: 500 });
   }
 }

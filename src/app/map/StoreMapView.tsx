@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { StoreData } from '@/types/store';
+import { useUserLocation } from './useUserLocation';
 
-// Dynamically load the map component to prevent SSR issues
 const MapComponent = dynamic(() => import('./MapComponent'), {
   ssr: false,
   loading: () => <div className="h-[600px] w-full bg-gray-100 flex items-center justify-center">Loading map...</div>
@@ -19,18 +19,39 @@ interface StoreMapViewProps {
   };
 }
 
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 3958.8;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
 export default function StoreMapView({ filters }: StoreMapViewProps) {
   const [stores, setStores] = useState<StoreData[]>([]);
+  const [filteredStores, setFilteredStores] = useState<StoreData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedStore, setSelectedStore] = useState<StoreData | null>(null);
+  
+  const { 
+    userLocation, 
+    locationError, 
+    isLoading, 
+    manualAddress, 
+    setManualAddress, 
+    geocodeAddress 
+  } = useUserLocation();
 
   useEffect(() => {
     const fetchStores = async () => {
       try {
         setLoading(true);
         
-        // Build query string from filters
         const params = new URLSearchParams();
         if (filters.category && filters.category !== 'All Categories') {
           params.append('category', filters.category);
@@ -63,6 +84,33 @@ export default function StoreMapView({ filters }: StoreMapViewProps) {
     fetchStores();
   }, [filters]);
 
+  useEffect(() => {
+    if (!userLocation || !stores.length) {
+      setFilteredStores(stores);
+      return;
+    }
+
+    const filtered = stores.filter(store => {
+      if (!store.latitude || !store.longitude) return true;
+      
+      const distance = calculateDistance(
+        userLocation.lat,
+        userLocation.lng,
+        store.latitude,
+        store.longitude
+      );
+      
+      return distance <= filters.maxDistance;
+    });
+    
+    setFilteredStores(filtered);
+  }, [userLocation, stores, filters.maxDistance]);
+
+  const handleGeocodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    geocodeAddress(manualAddress);
+  };
+
   return (
     <div className="w-full h-full">
       {error && (
@@ -70,6 +118,33 @@ export default function StoreMapView({ filters }: StoreMapViewProps) {
           {error}
         </div>
       )}
+      
+      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <form onSubmit={handleGeocodeSubmit} className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Enter your address, city, or zip code"
+            value={manualAddress}
+            onChange={(e) => setManualAddress(e.target.value)}
+            className="flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            type="submit"
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Loading...' : 'Search'}
+          </button>
+        </form>
+        {locationError && (
+          <p className="mt-2 text-yellow-700 text-sm">{locationError}</p>
+        )}
+        {userLocation && (
+          <p className="mt-2 text-green-700 text-sm">
+            Location found! Filtering stores within {filters.maxDistance} miles.
+          </p>
+        )}
+      </div>
       
       {loading ? (
         <div className="h-full w-full bg-gray-100 flex items-center justify-center">
@@ -81,8 +156,9 @@ export default function StoreMapView({ filters }: StoreMapViewProps) {
       ) : (
         <>
           <MapComponent 
-            stores={stores} 
-            onStoreSelect={(store) => setSelectedStore(store)} 
+            stores={filteredStores} 
+            onStoreSelect={(store) => setSelectedStore(store)}
+            userLocation={userLocation}
           />
           
           {selectedStore && (

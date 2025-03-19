@@ -1,42 +1,46 @@
+"use client"
+
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, MapPin, Tag, Store, DollarSign, AlertCircle, User, Info, Mail } from 'lucide-react';
-import Navbar from '@/components/Navbar'; // Import the Navbar component
+import Navbar from '@/components/Navbar';
+
+interface FeaturedStore {
+  id: string;
+  businessName: string;
+  category: string;
+  city: string;
+  state: string;
+  discountPercentage: number;
+  storeImageUrl?: string | null;
+  closingDate: string;
+}
 
 export default function Home() {
-  // Mock featured stores
-  const featuredStores = [
-    {
-      id: '1',
-      name: 'Fashion Outlet',
-      category: 'Clothing & Apparel',
-      discount: 50,
-      city: 'Chicago',
-      state: 'IL',
-      imageUrl: 'https://placehold.co/600x400?text=Fashion+Store'
-    },
-    {
-      id: '2',
-      name: 'Tech Haven',
-      category: 'Electronics',
-      discount: 40,
-      city: 'San Francisco',
-      state: 'CA',
-      imageUrl: 'https://placehold.co/600x400?text=Electronics+Store'
-    },
-    {
-      id: '3',
-      name: 'Cozy Home',
-      category: 'Home Goods',
-      discount: 35,
-      city: 'Boston',
-      state: 'MA',
-      imageUrl: 'https://placehold.co/600x400?text=Home+Goods'
-    }
-  ];
+  const [featuredStores, setFeaturedStores] = useState<FeaturedStore[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFeaturedStores = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/stores/featured');
+        if (response.ok) {
+          const data = await response.json();
+          setFeaturedStores(data);
+        }
+      } catch (error) {
+        console.error('Error fetching featured stores:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeaturedStores();
+  }, []);
 
   return (
     <main className="flex min-h-screen flex-col">
-      {/* Use the Navbar component instead of inline nav */}
       <Navbar />
       
       {/* Hero Section */}
@@ -126,37 +130,53 @@ export default function Home() {
           <h2 className="text-3xl font-bold text-center mb-2">Featured Closing Stores</h2>
           <p className="text-center text-gray-600 mb-10">Don't miss these limited-time opportunities</p>
           
-          <div className="grid md:grid-cols-3 gap-6">
-            {featuredStores.map((store) => (
-              <Link href={`/store/${store.id}`} key={store.id} className="group">
-                <div className="bg-white rounded-lg overflow-hidden shadow-md transition hover:shadow-lg">
-                  <div className="relative h-48 bg-gray-200">
-                    <img 
-                      src={store.imageUrl} 
-                      alt={store.name} 
-                      className="w-full h-full object-cover" 
-                    />
-                    <div className="absolute top-3 right-3 bg-red-500 text-white px-3 py-1 rounded-full font-bold">
-                      {store.discount}% OFF
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          ) : featuredStores && featuredStores.length > 0 ? (
+            <div className="grid md:grid-cols-3 gap-6">
+              {featuredStores.map((store) => (
+                <Link href={`/store/${store.id}`} key={store.id} className="group">
+                  <div className="bg-white rounded-lg overflow-hidden shadow-md transition hover:shadow-lg">
+                    <div className="relative h-48 bg-gray-200">
+                      {store.storeImageUrl ? (
+                        <img 
+                          src={store.storeImageUrl} 
+                          alt={store.businessName || 'Store image'} 
+                          className="w-full h-full object-cover" 
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                          <Store size={48} className="text-gray-400" />
+                        </div>
+                      )}
+                      <div className="absolute top-3 right-3 bg-red-500 text-white px-3 py-1 rounded-full font-bold">
+                        {store.discountPercentage}% OFF
+                      </div>
+                    </div>
+                    <div className="p-5">
+                      <h3 className="font-bold text-xl mb-1 group-hover:text-blue-600 transition">
+                        {store.businessName}
+                      </h3>
+                      <div className="flex items-center text-gray-500 mb-2">
+                        <Tag size={14} className="mr-1" />
+                        <span>{store.category}</span>
+                      </div>
+                      <div className="flex items-center text-gray-500">
+                        <MapPin size={14} className="mr-1" />
+                        <span>{store.city}, {store.state}</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="p-5">
-                    <h3 className="font-bold text-xl mb-1 group-hover:text-blue-600 transition">
-                      {store.name}
-                    </h3>
-                    <div className="flex items-center text-gray-500 mb-2">
-                      <Tag size={14} className="mr-1" />
-                      <span>{store.category}</span>
-                    </div>
-                    <div className="flex items-center text-gray-500">
-                      <MapPin size={14} className="mr-1" />
-                      <span>{store.city}, {store.state}</span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <p className="text-gray-500">No featured stores available at this time.</p>
+            </div>
+          )}
           
           <div className="text-center mt-10">
             <Link href="/map" className="bg-indigo-600 text-white px-8 py-3 rounded-full font-medium hover:bg-indigo-700 transition inline-flex items-center">
@@ -222,7 +242,7 @@ export default function Home() {
               <h3 className="font-bold text-lg mb-4">Resources</h3>
               <ul className="space-y-2">
                 <li><a href="#" className="text-gray-600 hover:text-blue-600">Blog</a></li>
-                <li><a href="#" className="text-gray-600 hover:text-blue-600">FAQ</a></li>
+                <li><Link href="/contact" className="text-gray-600 hover:text-blue-600">FAQ</Link></li>
                 <li><a href="#" className="text-gray-600 hover:text-blue-600">Support</a></li>
                 <li><a href="#" className="text-gray-600 hover:text-blue-600">Privacy Policy</a></li>
               </ul>

@@ -26,7 +26,6 @@ interface FormData {
   agreedToTerms: boolean;
 }
 
-// For guest tip submissions
 interface GuestTipData {
   storeName: string;
   category: string;
@@ -36,6 +35,7 @@ interface GuestTipData {
   zipCode: string;
   storeImage: File | null;
   submitterEmail: string;
+  discountPercentage: string;
 }
 
 export default function SubmitPage() {
@@ -71,7 +71,8 @@ export default function SubmitPage() {
     state: '',
     zipCode: '',
     storeImage: null,
-    submitterEmail: ''
+    submitterEmail: '',
+    discountPercentage: ''
   });
   
   const [formStep, setFormStep] = useState(1);
@@ -94,12 +95,17 @@ export default function SubmitPage() {
     'Other'
   ];
 
-  // Check authentication when page loads
   useEffect(() => {
     if (status === 'authenticated') {
-      setUserType('owner');
+      const isAdmin = session?.user?.role === 'admin';
+      
+      if (isAdmin) {
+        setUserType('undecided');
+      } else {
+        setUserType('owner');
+      }
     }
-  }, [status]);
+  }, [status, session]);
   
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -239,6 +245,7 @@ export default function SubmitPage() {
       submitData.append('state', guestTipData.state);
       submitData.append('zipCode', guestTipData.zipCode);
       submitData.append('submitterEmail', guestTipData.submitterEmail);
+      submitData.append('discountPercentage', guestTipData.discountPercentage);
       
       if (guestTipData.storeImage) {
         submitData.append('storeImage', guestTipData.storeImage);
@@ -246,7 +253,7 @@ export default function SubmitPage() {
       
       console.log('Submitting guest tip data...');
       
-      const response = await fetch('/api/store-tips', { // Different endpoint for guest tips
+      const response = await fetch('/api/store-tips', {
         method: 'POST',
         body: submitData
       });
@@ -270,7 +277,6 @@ export default function SubmitPage() {
   const nextStep = () => setFormStep(formStep + 1);
   const prevStep = () => setFormStep(formStep - 1);
   
-  // Display the submission success page
   if (isSubmitted) {
     return (
       <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
@@ -319,7 +325,8 @@ export default function SubmitPage() {
                     state: '',
                     zipCode: '',
                     storeImage: null,
-                    submitterEmail: ''
+                    submitterEmail: '',
+                    discountPercentage: ''
                   });
                 }
               }}
@@ -340,7 +347,6 @@ export default function SubmitPage() {
     );
   }
 
-  // Show user type selection if not decided yet
   if (userType === 'undecided') {
     return (
       <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
@@ -355,11 +361,9 @@ export default function SubmitPage() {
         </div>
         
         <div className="grid md:grid-cols-2 gap-6 mb-6">
-          {/* Store Owner Option */}
           <div 
             onClick={() => {
               if (status === 'unauthenticated') {
-                // Redirect to login if not authenticated
                 router.push('/login?callbackUrl=/submit');
               } else {
                 setUserType('owner');
@@ -379,7 +383,6 @@ export default function SubmitPage() {
             </p>
           </div>
           
-          {/* Guest Option */}
           <div 
             onClick={() => setUserType('guest')} 
             className="border rounded-lg p-6 hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-colors"
@@ -400,7 +403,6 @@ export default function SubmitPage() {
     );
   }
 
-  // If user is not authenticated but trying to submit as owner, redirect to login
   if (userType === 'owner' && status === 'unauthenticated') {
     return (
       <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
@@ -446,7 +448,6 @@ export default function SubmitPage() {
     );
   }
 
-  // Guest tip submission form
   if (userType === 'guest') {
     return (
       <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
@@ -583,6 +584,29 @@ export default function SubmitPage() {
           </div>
           
           <div className="mb-4">
+            <label htmlFor="discountPercentage" className="block text-sm font-medium text-gray-700 mb-1">
+              Estimated Discount Percentage (Optional)
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <Tag size={18} className="text-gray-500" />
+              </div>
+              <input
+                type="number"
+                id="discountPercentage"
+                name="discountPercentage"
+                value={guestTipData.discountPercentage}
+                onChange={handleGuestTextChange}
+                className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                placeholder="e.g., 50"
+                min={1}
+                max={100}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">If you know the discount percentage, please enter it here.</p>
+          </div>
+          
+          <div className="mb-4">
             <label htmlFor="submitterEmail" className="block text-sm font-medium text-gray-700 mb-1">
               Your Email <span className="text-red-500">*</span>
             </label>
@@ -641,7 +665,6 @@ export default function SubmitPage() {
     );
   }
 
-  // The original multi-step form for authenticated store owners  
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
       <h1 className="text-2xl font-bold text-center mb-6">

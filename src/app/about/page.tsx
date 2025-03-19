@@ -25,7 +25,7 @@ export default function About() {
           <div className="max-w-3xl mx-auto">
             <h2 className="text-3xl font-bold mb-6">Our Story</h2>
             <p className="text-lg text-gray-700 mb-4">
-              Store Transitions was founded in 2023 with a simple mission: to create a win-win platform that connects shoppers with businesses that are closing their doors.
+              Store Transitions was founded in 2025 with a simple mission: to create a win-win platform that connects shoppers with businesses that are closing their doors.
             </p>
             <p className="text-lg text-gray-700 mb-4">
               After witnessing many local stores struggle during their closing phases and seeing how often shoppers missed out on great deals because they didn't know about these sales, we realized there was a need for a dedicated platform to bridge this gap.
@@ -123,10 +123,10 @@ export default function About() {
                 />
               </div>
               <div className="p-5 text-center">
-                <h3 className="font-bold text-xl mb-1">Alex Johnson</h3>
+                <h3 className="font-bold text-xl mb-1">RAEEAN AHMED</h3>
                 <p className="text-gray-600 mb-4">Co-Founder & CEO</p>
                 <p className="text-gray-700 text-sm">
-                  Former retail executive with 15+ years of experience in the industry.
+                  computer scientist at the AFRL (air focre research lab) and a tech entrepreneur with a passion for improving peoples lives through technology.
                 </p>
               </div>
             </div>
@@ -140,10 +140,10 @@ export default function About() {
                 />
               </div>
               <div className="p-5 text-center">
-                <h3 className="font-bold text-xl mb-1">Jamie Rivera</h3>
+                <h3 className="font-bold text-xl mb-1">MD RAGHD AHMED</h3>
                 <p className="text-gray-600 mb-4">Co-Founder & CTO</p>
                 <p className="text-gray-700 text-sm">
-                  Tech entrepreneur and developer with a passion for solving retail challenges.
+                doctor of medicine at harvard medical school and a tech entrepreneur with a passion for improving peoples lives through technology.
                 </p>
               </div>
             </div>

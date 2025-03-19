@@ -1,31 +1,19 @@
 "use client"
 
+import { Store } from '@/types/store';
 import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Check, X, Eye } from 'lucide-react';
-
-interface Store {
-  id: string;
-  businessName: string;
-  category: string;
-  city: string;
-  state: string;
-  closingDate: string;
-  discountPercentage: number;
-  isApproved: boolean;
-  createdAt: string;
-}
 
 export default function AdminStoresPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState('pending'); // 'pending' or 'approved'
+  const [viewMode, setViewMode] = useState('pending');
   
   useEffect(() => {
-    // Redirect if not admin
     if (status === 'authenticated' && session?.user?.role !== 'admin') {
       router.push('/');
     }
@@ -76,11 +64,9 @@ export default function AdminStoresPage() {
       });
       
       if (response.ok) {
-        // Update the local state
         setStores(stores.map(store => 
           store.id === id ? { ...store, isApproved: true } : store
         ));
-        // Refresh the list
         fetchPendingStores();
       }
     } catch (error) {
@@ -95,7 +81,6 @@ export default function AdminStoresPage() {
       });
       
       if (response.ok) {
-        // Remove from list
         setStores(stores.filter(store => store.id !== id));
       }
     } catch (error) {
@@ -173,7 +158,11 @@ export default function AdminStoresPage() {
                   {new Date(store.closingDate).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="text-red-600 font-bold">{store.discountPercentage}%</span>
+                  {store.discountPercentage || store.discountPercentage === 0 ? (
+                    <span className="text-red-600 font-bold">{store.discountPercentage}%</span>
+                  ) : (
+                    <span className="text-gray-500">Unspecified</span>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {new Date(store.createdAt).toLocaleDateString()}

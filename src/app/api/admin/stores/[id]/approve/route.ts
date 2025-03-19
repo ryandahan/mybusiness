@@ -10,21 +10,65 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Check if user is authenticated and is an admin
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Update store to approved status
-    const updatedStore = await prisma.store.update({
-      where: { id: params.id },
-      data: { isApproved: true }
+    const id = params.id;
+    
+    // Check if it's a StoreTip first
+    const storeTip = await prisma.storeTip.findUnique({
+      where: { id }
     });
     
-    return NextResponse.json(updatedStore);
+    if (storeTip) {
+      // Extract the discount value safely
+      let discountValue = 10; // Default value
+      if (typeof storeTip['discountPercentage'] === 'number') {
+        discountValue = storeTip['discountPercentage'];
+      }
+      
+      // Create new store from tip
+      const newStore = await prisma.store.create({
+        data: {
+          businessName: storeTip.storeName,
+          category: storeTip.category,
+          address: storeTip.address,
+          city: storeTip.city,
+          state: storeTip.state,
+          zipCode: storeTip.zipCode,
+          phone: 'N/A',
+          email: storeTip.submitterEmail,
+          closingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          discountPercentage: discountValue,
+          inventoryDescription: 'Submitted via tip from shopper',
+          ownerName: 'Unknown (Shopper Tip)',
+          contactPreference: 'email',
+          storeImageUrl: storeTip.storeImageUrl,
+          latitude: storeTip.latitude,
+          longitude: storeTip.longitude,
+          isApproved: true
+        }
+      });
+      
+      // Delete the tip
+      await prisma.storeTip.delete({
+        where: { id }
+      });
+      
+      return NextResponse.json(newStore);
+    } else {
+      // Regular store approval
+      const updatedStore = await prisma.store.update({
+        where: { id },
+        data: { isApproved: true }
+      });
+      
+      return NextResponse.json(updatedStore);
+    }
   } catch (error) {
-    console.error('Error approving store:', error);
+    console.error('Error approving record:', error);
     return NextResponse.json({ error: 'An error occurred' }, { status: 500 });
   }
 }
