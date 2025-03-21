@@ -35,6 +35,9 @@ model Store {
   updatedAt           DateTime @updatedAt
   userId              String?
   user                User?    @relation(fields: [userId], references: [id])
+  @@index([isApproved, createdAt])
+  @@index([isFeatured])
+  @@index([city, state])
 }
 
 model User {

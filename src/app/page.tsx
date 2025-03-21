@@ -1,8 +1,8 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Search, MapPin, Tag, Store, DollarSign, AlertCircle, User, Info, Mail } from 'lucide-react';
+import { Search, MapPin, Tag, Store, DollarSign, AlertCircle, User, Info, Mail, ChevronLeft, ChevronRight } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 
 interface FeaturedStore {
@@ -11,7 +11,7 @@ interface FeaturedStore {
   category: string;
   city: string;
   state: string;
-  discountPercentage: number;
+  discountPercentage: number | null;
   storeImageUrl?: string | null;
   closingDate: string;
 }
@@ -19,6 +19,9 @@ interface FeaturedStore {
 export default function Home() {
   const [featuredStores, setFeaturedStores] = useState<FeaturedStore[]>([]);
   const [loading, setLoading] = useState(true);
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
 
   useEffect(() => {
     const fetchFeaturedStores = async () => {
@@ -38,6 +41,42 @@ export default function Home() {
 
     fetchFeaturedStores();
   }, []);
+
+  // Check scroll capability
+  useEffect(() => {
+    const checkScroll = () => {
+      if (sliderRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = sliderRef.current;
+        setCanScrollLeft(scrollLeft > 0);
+        setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+      }
+    };
+
+    const slider = sliderRef.current;
+    if (slider) {
+      slider.addEventListener('scroll', checkScroll);
+      // Initial check
+      checkScroll();
+    }
+
+    return () => {
+      if (slider) {
+        slider.removeEventListener('scroll', checkScroll);
+      }
+    };
+  }, [featuredStores]);
+
+  const scrollLeft = () => {
+    if (sliderRef.current) {
+      sliderRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (sliderRef.current) {
+      sliderRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+    }
+  };
 
   return (
     <main className="flex min-h-screen flex-col">
@@ -135,42 +174,68 @@ export default function Home() {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
           ) : featuredStores && featuredStores.length > 0 ? (
-            <div className="grid md:grid-cols-3 gap-6">
-              {featuredStores.map((store) => (
-                <Link href={`/store/${store.id}`} key={store.id} className="group">
-                  <div className="bg-white rounded-lg overflow-hidden shadow-md transition hover:shadow-lg">
-                    <div className="relative h-48 bg-gray-200">
-                      {store.storeImageUrl ? (
-                        <img 
-                          src={store.storeImageUrl} 
-                          alt={store.businessName || 'Store image'} 
-                          className="w-full h-full object-cover" 
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                          <Store size={48} className="text-gray-400" />
+            <div className="relative">
+              {canScrollLeft && (
+                <button 
+                  onClick={scrollLeft}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white p-2 rounded-full shadow-md hover:bg-gray-100"
+                >
+                  <ChevronLeft size={24} />
+                </button>
+              )}
+              
+              <div 
+                ref={sliderRef}
+                className="flex overflow-x-auto pb-6 scrollbar-hide gap-6 scroll-smooth"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                {featuredStores.map((store) => (
+                  <div key={store.id} className="flex-shrink-0 w-80">
+                    <Link href={`/store/${store.id}`} className="block group">
+                      <div className="bg-white rounded-lg overflow-hidden shadow-md transition hover:shadow-lg h-full">
+                        <div className="relative h-48 bg-gray-200">
+                          {store.storeImageUrl ? (
+                            <img 
+                              src={store.storeImageUrl} 
+                              alt={store.businessName || 'Store image'} 
+                              className="w-full h-full object-cover" 
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                              <Store size={48} className="text-gray-400" />
+                            </div>
+                          )}
+                          <div className="absolute top-3 right-3 bg-red-500 text-white px-3 py-1 rounded-full font-bold">
+                            {store.discountPercentage ?? 'Varies'}%
+                          </div>
                         </div>
-                      )}
-                      <div className="absolute top-3 right-3 bg-red-500 text-white px-3 py-1 rounded-full font-bold">
-                        {store.discountPercentage}% OFF
+                        <div className="p-5">
+                          <h3 className="font-bold text-xl mb-1 group-hover:text-blue-600 transition">
+                            {store.businessName}
+                          </h3>
+                          <div className="flex items-center text-gray-500 mb-2">
+                            <Tag size={14} className="mr-1" />
+                            <span>{store.category}</span>
+                          </div>
+                          <div className="flex items-center text-gray-500">
+                            <MapPin size={14} className="mr-1" />
+                            <span>{store.city}, {store.state}</span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="p-5">
-                      <h3 className="font-bold text-xl mb-1 group-hover:text-blue-600 transition">
-                        {store.businessName}
-                      </h3>
-                      <div className="flex items-center text-gray-500 mb-2">
-                        <Tag size={14} className="mr-1" />
-                        <span>{store.category}</span>
-                      </div>
-                      <div className="flex items-center text-gray-500">
-                        <MapPin size={14} className="mr-1" />
-                        <span>{store.city}, {store.state}</span>
-                      </div>
-                    </div>
+                    </Link>
                   </div>
-                </Link>
-              ))}
+                ))}
+              </div>
+              
+              {canScrollRight && (
+                <button 
+                  onClick={scrollRight}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white p-2 rounded-full shadow-md hover:bg-gray-100"
+                >
+                  <ChevronRight size={24} />
+                </button>
+              )}
             </div>
           ) : (
             <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -242,7 +307,7 @@ export default function Home() {
               <h3 className="font-bold text-lg mb-4">Resources</h3>
               <ul className="space-y-2">
                 <li><a href="#" className="text-gray-600 hover:text-blue-600">Blog</a></li>
-                <li><Link href="/contact" className="text-gray-600 hover:text-blue-600">FAQ</Link></li>
+                <li><Link href="/faq" className="text-gray-600 hover:text-blue-600">FAQ</Link></li>
                 <li><a href="#" className="text-gray-600 hover:text-blue-600">Support</a></li>
                 <li><a href="#" className="text-gray-600 hover:text-blue-600">Privacy Policy</a></li>
               </ul>

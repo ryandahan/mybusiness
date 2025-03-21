@@ -12,17 +12,20 @@ export interface StoreData {
   email: string;
   website?: string;
   closingDate: string;
-  discountPercentage: number | null;  // Updated to allow null
+  discountPercentage: number | null;
   inventoryDescription: string;
   reasonForClosing?: string;
   ownerName: string;
   contactPreference: 'email' | 'phone';
   storeImageUrl?: string;
-  latitude: number | null;  // Allow null for incomplete coordinates
+  verificationDocUrl?: string;
+  latitude: number | null;
   longitude: number | null;
   isApproved: boolean;
+  isFeatured?: boolean;
   createdAt: string;
-  source?: string;  // Added source field to identify shopper vs. store owner submissions
+  updatedAt?: string;
+  userId?: string;
 }
 
 // Simplified interface for admin dashboard and listing views
@@ -35,6 +38,7 @@ export interface Store {
   closingDate: string;
   discountPercentage: number | null;
   isApproved: boolean;
+  isFeatured?: boolean;
   createdAt: string;
   source?: string;
 }

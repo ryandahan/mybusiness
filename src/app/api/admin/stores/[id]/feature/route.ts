@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check if user is authenticated and is an admin
@@ -16,8 +16,12 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
+    // Await the params
+    const params = await context.params;
+    const id = params.id;
+    
     const store = await prisma.store.findUnique({
-      where: { id: params.id }
+      where: { id }
     });
     
     if (!store) {
@@ -25,9 +29,8 @@ export async function PUT(
     }
     
     // Use a more dynamic approach to toggle featured status
-    // This works even if the isFeatured field isn't fully recognized by TypeScript yet
     const updatedStore = await prisma.store.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         // @ts-ignore - Ignore TypeScript errors about isFeatured
         isFeatured: !store.isFeatured

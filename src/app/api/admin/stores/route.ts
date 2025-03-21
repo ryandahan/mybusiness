@@ -33,6 +33,7 @@ export async function GET(req: NextRequest) {
         closingDate: true,
         discountPercentage: true,
         isApproved: true,
+        isFeatured: true,
         createdAt: true
       }
     });
@@ -69,6 +70,7 @@ export async function GET(req: NextRequest) {
       closingDate: null,
       discountPercentage: tip.discountPercentage, // Fixed to use actual value
       isApproved: false,
+      isFeatured: false,
       createdAt: tip.createdAt,
       source: 'shopper'
     }));

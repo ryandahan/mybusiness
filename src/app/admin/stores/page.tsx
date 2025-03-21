@@ -1,17 +1,21 @@
 "use client"
 
-import { Store } from '@/types/store';
 import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Check, X, Eye } from 'lucide-react';
+import { Check, X, Eye, Star } from 'lucide-react';
+import { Store } from '@/types/store';
+
+interface AdminStore extends Store {
+  isFeatured?: boolean;
+}
 
 export default function AdminStoresPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [stores, setStores] = useState<Store[]>([]);
+  const [stores, setStores] = useState<AdminStore[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState('pending');
+  const [viewMode, setViewMode] = useState('pending'); // 'pending' or 'approved'
   
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.role !== 'admin') {
@@ -87,6 +91,23 @@ export default function AdminStoresPage() {
       console.error('Error rejecting store:', error);
     }
   };
+
+  const toggleFeatured = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/stores/${id}/feature`, {
+        method: 'PUT',
+      });
+      
+      if (response.ok) {
+        const updatedStore = await response.json();
+        setStores(stores.map(store => 
+          store.id === id ? { ...store, isFeatured: updatedStore.isFeatured } : store
+        ));
+      }
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+    }
+  };
   
   if (status === 'loading' || loading) {
     return <div className="p-8 text-center">Loading...</div>;
@@ -144,6 +165,9 @@ export default function AdminStoresPage() {
                 Submitted
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Featured
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -166,6 +190,17 @@ export default function AdminStoresPage() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {new Date(store.createdAt).toLocaleDateString()}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {viewMode === 'approved' && (
+                    <button
+                      onClick={() => toggleFeatured(store.id)}
+                      className={`p-2 rounded-full ${store.isFeatured ? 'bg-yellow-100 text-yellow-600' : 'bg-gray-100 text-gray-400'}`}
+                      title={store.isFeatured ? "Remove from Featured" : "Add to Featured"}
+                    >
+                      <Star size={18} fill={store.isFeatured ? "currentColor" : "none"} />
+                    </button>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex space-x-2">
@@ -202,7 +237,7 @@ export default function AdminStoresPage() {
             
             {stores.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
                   {viewMode === 'pending' 
                     ? 'No pending stores to approve' 
                     : 'No approved stores found'}

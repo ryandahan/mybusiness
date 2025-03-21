@@ -5,30 +5,22 @@ const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    // Try to get stores marked as featured first
-    let stores = await prisma.store.findMany({
+    // Explicitly filter for stores where isFeatured is true (not null or undefined)
+    const stores = await prisma.store.findMany({
       where: { 
         isApproved: true,
-        // @ts-ignore - Ignore TypeScript errors about isFeatured
-        isFeatured: true
+        isFeatured: {
+          equals: true
+        }
       },
-      take: 3,
       orderBy: { 
         discountPercentage: 'desc'
       }
     });
     
-    // If no featured stores found, fall back to showing highest discount stores
+    // Return empty array if no featured stores found
     if (stores.length === 0) {
-      stores = await prisma.store.findMany({
-        where: { 
-          isApproved: true
-        },
-        take: 3,
-        orderBy: { 
-          discountPercentage: 'desc'
-        }
-      });
+      return NextResponse.json([]);
     }
     
     return NextResponse.json(stores);
