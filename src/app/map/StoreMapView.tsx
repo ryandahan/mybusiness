@@ -139,7 +139,7 @@ export default function StoreMapView({ filters }: StoreMapViewProps) {
         {locationError && (
           <p className="mt-2 text-yellow-700 text-sm">{locationError}</p>
         )}
-        {userLocation && (
+        {userLocation && !locationError && (
           <p className="mt-2 text-green-700 text-sm">
             Location found! Filtering stores within {filters.maxDistance} miles.
           </p>
