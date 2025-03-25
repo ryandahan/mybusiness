@@ -306,8 +306,8 @@ export default function Home() {
             <div>
               <h3 className="font-bold text-lg mb-4">Resources</h3>
               <ul className="space-y-2">
-                <li><a href="#" className="text-gray-600 hover:text-blue-600">Blog</a></li>
-                <li><Link href="/faq" className="text-gray-600 hover:text-blue-600">FAQ</Link></li>
+              <li><Link href="/blog" className="text-gray-600 hover:text-blue-600">Blog</Link></li>
+              <li><Link href="/faq" className="text-gray-600 hover:text-blue-600">FAQ</Link></li>
                 <li><a href="#" className="text-gray-600 hover:text-blue-600">Support</a></li>
                 <li><a href="#" className="text-gray-600 hover:text-blue-600">Privacy Policy</a></li>
               </ul>

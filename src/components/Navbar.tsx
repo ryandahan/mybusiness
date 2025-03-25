@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
-import { Menu, X, User, LogOut, Settings } from 'lucide-react';
+import { Menu, X, User, LogOut, Settings, ChevronDown } from 'lucide-react';
 
 export default function Navbar() {
   const { data: session, status } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [adminDropdownOpen, setAdminDropdownOpen] = useState(false);
   
   const isAdmin = session?.user?.role === 'admin';
   
@@ -47,14 +48,35 @@ export default function Navbar() {
                 Contact
               </Link>
               
-              {/* Admin link - only visible to admin users */}
+              {/* Admin dropdown - only visible to admin users */}
               {isAdmin && (
-                <Link 
-                  href="/admin/stores" 
-                  className="inline-flex items-center px-1 pt-1 text-red-600 font-medium hover:text-red-800"
-                >
-                  Admin Dashboard
-                </Link>
+                <div className="relative">
+                  <button 
+                    onClick={() => setAdminDropdownOpen(!adminDropdownOpen)}
+                    onBlur={() => setTimeout(() => setAdminDropdownOpen(false), 100)}
+                    className="inline-flex items-center px-1 pt-1 text-red-600 font-medium hover:text-red-800"
+                  >
+                    Admin Dashboard
+                    <ChevronDown size={16} className="ml-1" />
+                  </button>
+                  
+                  {adminDropdownOpen && (
+                    <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
+                      <Link 
+                        href="/admin/stores" 
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        Store Management
+                      </Link>
+                      <Link 
+                        href="/admin/blogs" 
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        Blog Management
+                      </Link>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -141,15 +163,24 @@ export default function Navbar() {
               Contact
             </Link>
             
-            {/* Admin link for mobile - only visible to admin users */}
+            {/* Admin links for mobile - only visible to admin users */}
             {isAdmin && (
-              <Link
-                href="/admin/stores"
-                className="block pl-3 pr-4 py-2 border-l-4 border-red-400 text-base font-medium text-red-700 bg-red-50"
-                onClick={() => setMenuOpen(false)}
-              >
-                Admin Dashboard
-              </Link>
+              <>
+                <Link
+                  href="/admin/stores"
+                  className="block pl-3 pr-4 py-2 border-l-4 border-red-400 text-base font-medium text-red-700 bg-red-50"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Store Management
+                </Link>
+                <Link
+                  href="/admin/blogs"
+                  className="block pl-3 pr-4 py-2 border-l-4 border-red-400 text-base font-medium text-red-700 bg-red-50"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Blog Management
+                </Link>
+              </>
             )}
           </div>
           

@@ -29,7 +29,7 @@ model Store {
   latitude            Float?
   longitude           Float?
   isApproved          Boolean  @default(false)
-  isFeatured          Boolean  @default(false)  // New field added here
+  isFeatured          Boolean  @default(false)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
   userId              String?
@@ -53,6 +53,7 @@ model User {
   resetPasswordToken   String?
   verificationToken    String?
   stores            Store[]
+  blogs             Blog[]
 }
 
 model StoreTip {
@@ -72,4 +73,17 @@ model StoreTip {
   notes             String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+}
+model Blog {
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  content     String    @db.Text
+  imageUrl    String?
+  published   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  @@index([published])
 }
