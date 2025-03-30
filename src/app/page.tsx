@@ -191,7 +191,7 @@ export default function Home() {
               >
                 {featuredStores.map((store) => (
                   <div key={store.id} className="flex-shrink-0 w-80">
-                    <Link href={`/store/${store.id}`} className="block group">
+                    <Link href={`/stores/${store.id}`} className="block group">
                       <div className="bg-white rounded-lg overflow-hidden shadow-md transition hover:shadow-lg h-full">
                         <div className="relative h-48 bg-gray-200">
                           {store.storeImageUrl ? (
