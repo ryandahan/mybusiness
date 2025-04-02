@@ -7,6 +7,13 @@ export function useUserLocation() {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [manualAddress, setManualAddress] = useState('');
+  const [addressSuggestions, setAddressSuggestions] = useState<Array<{
+    display_name: string;
+    lat: string;
+    lon: string;
+  }>>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !navigator.geolocation) {
@@ -30,6 +37,40 @@ export function useUserLocation() {
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   }, []);
+
+  // Fetch address suggestions as the user types
+  useEffect(() => {
+    const fetchAddressSuggestions = async () => {
+      if (!manualAddress || manualAddress.length < 3) {
+        setAddressSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
+
+      try {
+        setIsFetchingSuggestions(true);
+        const response = await fetch(`/api/address-suggestions?q=${encodeURIComponent(manualAddress)}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch address suggestions');
+        }
+        
+        const data = await response.json();
+        setAddressSuggestions(data);
+        setShowSuggestions(true);
+      } catch (error) {
+        console.error('Error fetching address suggestions:', error);
+        setAddressSuggestions([]);
+      } finally {
+        setIsFetchingSuggestions(false);
+      }
+    };
+
+    // Debounce the suggestions to avoid too many API calls
+    const timeoutId = setTimeout(fetchAddressSuggestions, 300);
+    
+    return () => clearTimeout(timeoutId);
+  }, [manualAddress]);
 
   const geocodeAddress = async (address: string) => {
     if (!address.trim()) return;
@@ -59,7 +100,18 @@ export function useUserLocation() {
       console.error('Geocoding error:', error);
     } finally {
       setIsLoading(false);
+      setShowSuggestions(false);
     }
+  };
+
+  const selectSuggestion = (suggestion: { display_name: string; lat: string; lon: string }) => {
+    setManualAddress(suggestion.display_name);
+    setUserLocation({
+      lat: parseFloat(suggestion.lat),
+      lng: parseFloat(suggestion.lon)
+    });
+    setShowSuggestions(false);
+    setLocationError(null);
   };
 
   return { 
@@ -69,6 +121,11 @@ export function useUserLocation() {
     isLoading,
     manualAddress,
     setManualAddress,
-    geocodeAddress
+    geocodeAddress,
+    addressSuggestions,
+    showSuggestions,
+    setShowSuggestions,
+    isFetchingSuggestions,
+    selectSuggestion
   };
 }

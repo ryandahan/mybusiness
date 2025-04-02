@@ -44,7 +44,12 @@ export default function StoreMapView({ filters }: StoreMapViewProps) {
     isLoading, 
     manualAddress, 
     setManualAddress, 
-    geocodeAddress 
+    geocodeAddress,
+    addressSuggestions,
+    showSuggestions,
+    setShowSuggestions,
+    isFetchingSuggestions,
+    selectSuggestion
   } = useUserLocation();
 
   useEffect(() => {
@@ -91,7 +96,7 @@ export default function StoreMapView({ filters }: StoreMapViewProps) {
     }
 
     const filtered = stores.filter(store => {
-      if (!store.latitude || !store.longitude) return false; // Changed to false
+      if (!store.latitude || !store.longitude) return false;
       
       const distance = calculateDistance(
         userLocation.lat,
@@ -111,6 +116,21 @@ export default function StoreMapView({ filters }: StoreMapViewProps) {
     geocodeAddress(manualAddress);
   };
 
+  // Handle clicks outside of suggestions dropdown to close it
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.address-input-container') && showSuggestions) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSuggestions, setShowSuggestions]);
+
   return (
     <div className="w-full h-full">
       {error && (
@@ -121,13 +141,42 @@ export default function StoreMapView({ filters }: StoreMapViewProps) {
       
       <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <form onSubmit={handleGeocodeSubmit} className="flex gap-2">
-          <input
-            type="text"
-            placeholder="Enter your address, city, or zip code"
-            value={manualAddress}
-            onChange={(e) => setManualAddress(e.target.value)}
-            className="flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <div className="flex-1 relative address-input-container">
+            <input
+              type="text"
+              placeholder="Enter your address, city, or zip code"
+              value={manualAddress}
+              onChange={(e) => setManualAddress(e.target.value)}
+              onFocus={() => {
+                if (addressSuggestions.length > 0) {
+                  setShowSuggestions(true);
+                }
+              }}
+              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            
+            {/* Address suggestions dropdown */}
+            {showSuggestions && addressSuggestions.length > 0 && (
+              <div className="absolute z-50 w-full bg-white mt-1 border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {addressSuggestions.map((suggestion, index) => (
+                  <div
+                    key={index}
+                    className="p-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100"
+                    onClick={() => selectSuggestion(suggestion)}
+                  >
+                    {suggestion.display_name}
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {isFetchingSuggestions && (
+              <div className="absolute right-3 top-2">
+                <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
+              </div>
+            )}
+          </div>
+          
           <button
             type="submit"
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
@@ -136,9 +185,11 @@ export default function StoreMapView({ filters }: StoreMapViewProps) {
             {isLoading ? 'Loading...' : 'Search'}
           </button>
         </form>
+        
         {locationError && (
           <p className="mt-2 text-yellow-700 text-sm">{locationError}</p>
         )}
+        
         {userLocation && !locationError && (
           <p className="mt-2 text-sm">
             {filteredStores.length > 0 
