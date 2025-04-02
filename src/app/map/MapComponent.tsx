@@ -27,9 +27,15 @@ interface MapComponentProps {
   stores: StoreData[];
   onStoreSelect?: (store: StoreData) => void;
   userLocation?: { lat: number; lng: number } | null;
+  maxDistance?: number; // Added this prop
 }
 
-export default function MapComponent({ stores = [], onStoreSelect, userLocation }: MapComponentProps) {
+export default function MapComponent({ 
+  stores = [], 
+  onStoreSelect, 
+  userLocation, 
+  maxDistance = 0 // Default value
+}: MapComponentProps) {
   const [mapInitialized, setMapInitialized] = useState(false);
   
   useEffect(() => {
@@ -123,9 +129,9 @@ export default function MapComponent({ stores = [], onStoreSelect, userLocation 
             )}
           </LayersControl>
           
-          {stores.length === 0 && (
+          {mapInitialized && stores.length === 0 && userLocation && (
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-md shadow-md z-[1000]">
-              <p>No stores available to display</p>
+              <p>No stores available to display within {maxDistance} miles</p>
             </div>
           )}
         </MapContainer>

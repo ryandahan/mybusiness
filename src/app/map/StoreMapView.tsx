@@ -91,7 +91,7 @@ export default function StoreMapView({ filters }: StoreMapViewProps) {
     }
 
     const filtered = stores.filter(store => {
-      if (!store.latitude || !store.longitude) return true;
+      if (!store.latitude || !store.longitude) return false; // Changed to false
       
       const distance = calculateDistance(
         userLocation.lat,
@@ -140,8 +140,10 @@ export default function StoreMapView({ filters }: StoreMapViewProps) {
           <p className="mt-2 text-yellow-700 text-sm">{locationError}</p>
         )}
         {userLocation && !locationError && (
-          <p className="mt-2 text-green-700 text-sm">
-            Location found! Filtering stores within {filters.maxDistance} miles.
+          <p className="mt-2 text-sm">
+            {filteredStores.length > 0 
+              ? <span className="text-green-700">Location found! Filtering stores within {filters.maxDistance} miles.</span>
+              : <span className="text-yellow-700">Your location was found, but no stores are within {filters.maxDistance} miles.</span>}
           </p>
         )}
       </div>
@@ -159,6 +161,7 @@ export default function StoreMapView({ filters }: StoreMapViewProps) {
             stores={filteredStores} 
             onStoreSelect={(store) => setSelectedStore(store)}
             userLocation={userLocation}
+            maxDistance={filters.maxDistance}
           />
           
           {selectedStore && (
