@@ -28,13 +28,20 @@ export async function PUT(
       return NextResponse.json({ error: 'Store not found' }, { status: 404 });
     }
     
-    // Use a more dynamic approach to toggle featured status
+    // Define update data with conditional storeType assignment
+    const updateData: any = {
+      isFeatured: !store.isFeatured
+    };
+    
+    // If featuring the store and storeType is missing, set a default
+    if (!store.isFeatured && !store.storeType) {
+      updateData.storeType = 'closing';
+    }
+    
+    // Update the store
     const updatedStore = await prisma.store.update({
       where: { id },
-      data: {
-        // @ts-ignore - Ignore TypeScript errors about isFeatured
-        isFeatured: !store.isFeatured
-      }
+      data: updateData
     });
     
     return NextResponse.json(updatedStore);

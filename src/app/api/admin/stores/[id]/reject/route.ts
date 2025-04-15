@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } }  // Change from context to destructured params
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -15,7 +15,13 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const id = params.id;
+    // Get ID and handle if params is a promise
+    const resolvedParams = params instanceof Promise ? await params : params;
+    const id = resolvedParams.id;
+    
+    if (!id) {
+      return NextResponse.json({ error: 'Missing ID parameter' }, { status: 400 });
+    }
     
     // Try to find in StoreTip
     let storeTip = await prisma.storeTip.findUnique({

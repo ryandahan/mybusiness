@@ -4,7 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
-export default function EditBlogPage({ params }: { params: { id: string } }) {
+export default function EditBlogPage({ params }: { params: any }) {
+  // Use type assertion to handle the unknown type
+  const id = (React.use(params) as { id: string }).id;
+  
   const { data: session, status } = useSession();
   const router = useRouter();
   const [formData, setFormData] = useState({
@@ -31,7 +34,8 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
   const fetchBlog = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/admin/blogs/${params.id}`);
+      // Use id instead of params.id
+      const response = await fetch(`/api/admin/blogs/${id}`);
       if (response.ok) {
         const data = await response.json();
         setFormData(data);
@@ -71,7 +75,8 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
     setError('');
 
     try {
-      const response = await fetch(`/api/admin/blogs/${params.id}`, {
+      // Use id instead of params.id
+      const response = await fetch(`/api/admin/blogs/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'

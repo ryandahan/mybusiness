@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    // Explicitly filter for stores where isFeatured is true (not null or undefined)
+    // Fetch featured stores of both types without using select
     const stores = await prisma.store.findMany({
       where: { 
         isApproved: true,
@@ -13,8 +13,10 @@ export async function GET() {
           equals: true
         }
       },
-      orderBy: { 
-        discountPercentage: 'desc'
+      // Remove the select clause to avoid type errors
+      // Prisma will return all fields by default
+      orderBy: {
+        createdAt: 'desc'
       }
     });
     

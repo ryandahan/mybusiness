@@ -3,15 +3,17 @@
 import React from 'react';
 import { Filter, Tag, Calendar, MapPin } from 'lucide-react';
 
-// Define the props type
+// Define the props type with storeType added
 interface FilterPanelProps {
   filters: {
+    storeType: 'closing' | 'opening' | 'all';
     category: string;
     minDiscount: number;
     maxDistance: number;
     closingBefore: string;
   };
   setFilters: React.Dispatch<React.SetStateAction<{
+    storeType: 'closing' | 'opening' | 'all';
     category: string;
     minDiscount: number;
     maxDistance: number;
@@ -77,26 +79,28 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, setFilters }) => {
           </select>
         </div>
         
-        {/* Discount filter */}
-        <div>
-          <label className="flex items-center mb-2 text-sm font-medium">
-            <Tag size={16} className="mr-2 text-gray-500" />
-            Minimum Discount
-          </label>
-          <div className="flex items-center">
-            <input
-              type="range"
-              name="minDiscount"
-              min="0"
-              max="90"
-              step="10"
-              value={filters.minDiscount}
-              onChange={handleChange}
-              className="w-full"
-            />
-            <span className="ml-2 text-blue-600 font-medium">{filters.minDiscount}%</span>
+        {/* Discount filter - only show for closing stores or all stores */}
+        {(filters.storeType === 'closing' || filters.storeType === 'all') && (
+          <div>
+            <label className="flex items-center mb-2 text-sm font-medium">
+              <Tag size={16} className="mr-2 text-gray-500" />
+              Minimum Discount
+            </label>
+            <div className="flex items-center">
+              <input
+                type="range"
+                name="minDiscount"
+                min="0"
+                max="90"
+                step="10"
+                value={filters.minDiscount}
+                onChange={handleChange}
+                className="w-full"
+              />
+              <span className="ml-2 text-blue-600 font-medium">{filters.minDiscount}%</span>
+            </div>
           </div>
-        </div>
+        )}
         
         {/* Distance filter */}
         <div>
@@ -119,11 +123,15 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, setFilters }) => {
           </div>
         </div>
         
-        {/* Closing date filter */}
+        {/* Date filter - dynamically change label based on store type */}
         <div>
           <label className="flex items-center mb-2 text-sm font-medium">
             <Calendar size={16} className="mr-2 text-gray-500" />
-            Closing Before
+            {filters.storeType === 'opening' 
+              ? 'Opening Before' 
+              : filters.storeType === 'closing'
+                ? 'Closing Before'
+                : 'Date Before'}
           </label>
           <input
             type="date"

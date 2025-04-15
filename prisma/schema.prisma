@@ -8,82 +8,88 @@ datasource db {
 }
 
 model Store {
-  id                  String   @id @default(cuid())
-  businessName        String
-  category            String
-  address             String
-  city                String
-  state               String
-  zipCode             String
-  phone               String
-  email               String
-  website             String?
-  closingDate         DateTime
-  discountPercentage  Int
+  id                   String   @id @default(cuid())
+  businessName         String
+  category             String
+  address              String
+  city                 String
+  state                String
+  zipCode              String
+  phone                String
+  email                String
+  website              String?
+  storeType            String?  // Optional
+  openingDate          DateTime?
+  closingDate          DateTime?
+  discountPercentage   Int?
+  specialOffers        String?
   inventoryDescription String
-  reasonForClosing     String?
-  ownerName           String
-  contactPreference   String
-  storeImageUrl       String?
-  verificationDocUrl  String?
-  latitude            Float?
-  longitude           Float?
-  isApproved          Boolean  @default(false)
-  isFeatured          Boolean  @default(false)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  userId              String?
-  user                User?    @relation(fields: [userId], references: [id])
+  reasonForClosing     String?  // Changed from reasonForTransition
+  ownerName            String
+  contactPreference    String
+  storeImageUrl        String?
+  verificationDocUrl   String?
+  latitude             Float?
+  longitude            Float?
+  isApproved           Boolean  @default(false)
+  isFeatured           Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  userId               String?
+  user                 User?    @relation(fields: [userId], references: [id])
   @@index([isApproved, createdAt])
   @@index([isFeatured])
   @@index([city, state])
+  @@index([storeType])
 }
 
 model User {
-  id                String    @id @default(cuid())
-  name              String?
-  email             String    @unique
-  emailVerified     DateTime?
-  password          String?
-  image             String?
-  role              String    @default("user")
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  id                   String    @id @default(cuid())
+  name                 String?
+  email                String    @unique
+  emailVerified        DateTime?
+  password             String?
+  image                String?
+  role                 String    @default("user")
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
   resetPasswordExpires DateTime?
   resetPasswordToken   String?
   verificationToken    String?
-  stores            Store[]
-  blogs             Blog[]
+  stores               Store[]
+  blogs                Blog[]
 }
 
 model StoreTip {
-  id                String   @id @default(cuid())
-  storeName         String
-  category          String
-  address           String
-  city              String
-  state             String
-  zipCode           String
-  submitterEmail    String
-  storeImageUrl     String?
-  discountPercentage Int?
-  latitude          Float?
-  longitude         Float?
-  status            String   @default("pending") 
-  notes             String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  storeName            String
+  category             String
+  address              String
+  city                 String
+  state                String
+  zipCode              String
+  submitterEmail       String
+  storeImageUrl        String?
+  discountPercentage   Int?
+  storeType            String   @default("closing")
+  latitude             Float?
+  longitude            Float?
+  status               String   @default("pending") 
+  notes                String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
+
 model Blog {
-  id          String    @id @default(cuid())
-  title       String
-  slug        String    @unique
-  content     String    @db.Text
-  imageUrl    String?
-  published   Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  userId      String
-  user        User      @relation(fields: [userId], references: [id])
+  id                   String    @id @default(cuid())
+  title                String
+  slug                 String    @unique
+  content              String    @db.Text
+  imageUrl             String?
+  published            Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  userId               String
+  user                 User      @relation(fields: [userId], references: [id])
   @@index([published])
 }

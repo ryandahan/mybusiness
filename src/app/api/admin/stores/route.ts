@@ -30,7 +30,9 @@ export async function GET(req: NextRequest) {
         category: true,
         city: true,
         state: true,
+        storeType: true,        // Added to properly determine store status
         closingDate: true,
+        openingDate: true,      // Added to properly determine store status
         discountPercentage: true,
         isApproved: true,
         isFeatured: true,
@@ -55,6 +57,7 @@ export async function GET(req: NextRequest) {
         city: true,
         state: true,
         submitterEmail: true,
+        storeType: true,        // Added to properly determine store status
         discountPercentage: true,
         createdAt: true
       }
@@ -67,8 +70,10 @@ export async function GET(req: NextRequest) {
       category: tip.category,
       city: tip.city,
       state: tip.state,
+      storeType: tip.storeType || 'closing',  // Include storeType
+      openingDate: null,        // StoreTip doesn't have openingDate field
       closingDate: null,
-      discountPercentage: tip.discountPercentage, // Fixed to use actual value
+      discountPercentage: tip.discountPercentage,
       isApproved: false,
       isFeatured: false,
       createdAt: tip.createdAt,

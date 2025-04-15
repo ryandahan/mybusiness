@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Search, MapPin, Tag, Store, DollarSign, AlertCircle, User, Info, Mail, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, MapPin, Tag, Store, DollarSign, AlertCircle, PlusCircle, User, Info, Mail, ChevronLeft, ChevronRight } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 
 interface FeaturedStore {
@@ -12,12 +12,16 @@ interface FeaturedStore {
   city: string;
   state: string;
   discountPercentage: number | null;
+  specialOffers: string | null;
   storeImageUrl?: string | null;
-  closingDate: string;
+  storeType: string;
+  openingDate?: string | null;
+  closingDate?: string | null;
 }
 
 export default function Home() {
   const [featuredStores, setFeaturedStores] = useState<FeaturedStore[]>([]);
+  const [activeTab, setActiveTab] = useState<'closing' | 'opening'>('closing');
   const [loading, setLoading] = useState(true);
   const sliderRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -78,6 +82,10 @@ export default function Home() {
     }
   };
 
+  const filteredStores = featuredStores.filter(store => 
+    store.storeType === activeTab
+  );
+
   return (
     <main className="flex min-h-screen flex-col">
       <Navbar />
@@ -87,18 +95,17 @@ export default function Home() {
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">Store Transitions</h1>
           <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
-            Connect with closing stores for great deals while helping businesses 
-            transition smoothly
+            Connect with opening and closing stores for great deals and opportunities
           </p>
           
           <div className="flex flex-col md:flex-row gap-4 justify-center mt-10">
             <Link href="/map" className="bg-white text-blue-600 px-8 py-3 rounded-full font-medium flex items-center justify-center hover:bg-gray-100 transition">
               <Search className="mr-2" size={20} />
-              Find Closing Stores
+              Find Stores
             </Link>
             <Link href="/submit" className="bg-transparent border-2 border-white text-white px-8 py-3 rounded-full font-medium flex items-center justify-center hover:bg-white/10 transition">
               <Store className="mr-2" size={20} />
-              List Your Closing Store
+              List Your Store
             </Link>
           </div>
         </div>
@@ -109,7 +116,7 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
           
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* For Shoppers */}
             <div className="bg-white p-8 rounded-lg shadow-md">
               <h3 className="text-2xl font-bold mb-4 flex items-center">
@@ -119,27 +126,27 @@ export default function Home() {
               <ul className="space-y-4">
                 <li className="flex">
                   <span className="bg-green-100 text-green-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0">1</span>
-                  <p>Discover stores that are closing in your area</p>
+                  <p>Discover stores that are opening or closing in your area</p>
                 </li>
                 <li className="flex">
                   <span className="bg-green-100 text-green-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0">2</span>
-                  <p>Find deep discounts as businesses liquidate inventory</p>
+                  <p>Find discounts at closing stores or special offers at new stores</p>
                 </li>
                 <li className="flex">
                   <span className="bg-green-100 text-green-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0">3</span>
-                  <p>Get notified when discounts increase as closing dates approach</p>
+                  <p>Get notified about new opportunities in your area</p>
                 </li>
               </ul>
               <Link href="/map" className="mt-6 inline-block bg-green-500 text-white px-6 py-2 rounded font-medium hover:bg-green-600 transition">
-                Find Deals Now
+                Find Stores Now
               </Link>
             </div>
             
-            {/* For Store Owners */}
+            {/* For Closing Store Owners */}
             <div className="bg-white p-8 rounded-lg shadow-md">
               <h3 className="text-2xl font-bold mb-4 flex items-center">
                 <Store className="mr-2 text-blue-500" size={28} />
-                For Store Owners
+                For Closing Stores
               </h3>
               <ul className="space-y-4">
                 <li className="flex">
@@ -155,8 +162,33 @@ export default function Home() {
                   <p>Manage your closing process more efficiently</p>
                 </li>
               </ul>
-              <Link href="/submit" className="mt-6 inline-block bg-blue-500 text-white px-6 py-2 rounded font-medium hover:bg-blue-600 transition">
-                List Your Store
+              <Link href="/submit?type=closing" className="mt-6 inline-block bg-blue-500 text-white px-6 py-2 rounded font-medium hover:bg-blue-600 transition">
+                List Closing Store
+              </Link>
+            </div>
+            
+            {/* For Opening Store Owners */}
+            <div className="bg-white p-8 rounded-lg shadow-md">
+              <h3 className="text-2xl font-bold mb-4 flex items-center">
+                <PlusCircle className="mr-2 text-purple-500" size={28} />
+                For Opening Stores
+              </h3>
+              <ul className="space-y-4">
+                <li className="flex">
+                  <span className="bg-purple-100 text-purple-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0">1</span>
+                  <p>Announce your new store to the community</p>
+                </li>
+                <li className="flex">
+                  <span className="bg-purple-100 text-purple-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0">2</span>
+                  <p>Promote your opening offers and special events</p>
+                </li>
+                <li className="flex">
+                  <span className="bg-purple-100 text-purple-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0">3</span>
+                  <p>Connect with customers who are eager to discover new businesses</p>
+                </li>
+              </ul>
+              <Link href="/submit?type=opening" className="mt-6 inline-block bg-purple-500 text-white px-6 py-2 rounded font-medium hover:bg-purple-600 transition">
+                List Opening Store
               </Link>
             </div>
           </div>
@@ -166,14 +198,32 @@ export default function Home() {
       {/* Featured Stores */}
       <section className="py-16">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-2">Featured Closing Stores</h2>
-          <p className="text-center text-gray-600 mb-10">Don't miss these limited-time opportunities</p>
+          <h2 className="text-3xl font-bold text-center mb-2">Featured Stores</h2>
+          <p className="text-center text-gray-600 mb-6">Discover businesses in transition near you</p>
+          
+          {/* Store Type Tabs */}
+          <div className="flex justify-center mb-10">
+            <div className="bg-gray-100 p-1 rounded-full inline-flex">
+              <button 
+                onClick={() => setActiveTab('closing')}
+                className={`px-6 py-2 rounded-full font-medium ${activeTab === 'closing' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}
+              >
+                Closing Stores
+              </button>
+              <button 
+                onClick={() => setActiveTab('opening')}
+                className={`px-6 py-2 rounded-full font-medium ${activeTab === 'opening' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-gray-200'}`}
+              >
+                Opening Stores
+              </button>
+            </div>
+          </div>
           
           {loading ? (
             <div className="flex justify-center items-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
-          ) : featuredStores && featuredStores.length > 0 ? (
+          ) : filteredStores && filteredStores.length > 0 ? (
             <div className="relative">
               {canScrollLeft && (
                 <button 
@@ -189,7 +239,7 @@ export default function Home() {
                 className="flex overflow-x-auto pb-6 scrollbar-hide gap-6 scroll-smooth"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
-                {featuredStores.map((store) => (
+                {filteredStores.map((store) => (
                   <div key={store.id} className="flex-shrink-0 w-80">
                     <Link href={`/stores/${store.id}`} className="block group">
                       <div className="bg-white rounded-lg overflow-hidden shadow-md transition hover:shadow-lg h-full">
@@ -205,8 +255,10 @@ export default function Home() {
                               <Store size={48} className="text-gray-400" />
                             </div>
                           )}
-                          <div className="absolute top-3 right-3 bg-red-500 text-white px-3 py-1 rounded-full font-bold">
-                            {store.discountPercentage ?? 'Varies'}%
+                          <div className={`absolute top-3 right-3 ${activeTab === 'closing' ? 'bg-red-500' : 'bg-purple-500'} text-white px-3 py-1 rounded-full font-bold`}>
+                            {activeTab === 'closing' 
+                              ? `${store.discountPercentage ?? 'Varies'}%` 
+                              : 'New Store'}
                           </div>
                         </div>
                         <div className="p-5">
@@ -220,6 +272,13 @@ export default function Home() {
                           <div className="flex items-center text-gray-500">
                             <MapPin size={14} className="mr-1" />
                             <span>{store.city}, {store.state}</span>
+                          </div>
+                          <div className="mt-2 text-sm">
+                            {activeTab === 'closing' ? (
+                              <p className="text-red-600">Closing: {new Date(store.closingDate as string).toLocaleDateString()}</p>
+                            ) : (
+                              <p className="text-purple-600">Opening: {new Date(store.openingDate as string).toLocaleDateString()}</p>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -239,13 +298,13 @@ export default function Home() {
             </div>
           ) : (
             <div className="text-center py-12 bg-gray-50 rounded-lg">
-              <p className="text-gray-500">No featured stores available at this time.</p>
+              <p className="text-gray-500">No featured {activeTab} stores available at this time.</p>
             </div>
           )}
           
           <div className="text-center mt-10">
             <Link href="/map" className="bg-indigo-600 text-white px-8 py-3 rounded-full font-medium hover:bg-indigo-700 transition inline-flex items-center">
-              View All Closing Stores
+              View All Stores
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
@@ -259,15 +318,20 @@ export default function Home() {
         <div className="container mx-auto px-4 text-center">
           <div className="flex items-center justify-center mb-6">
             <AlertCircle size={28} className="text-yellow-400 mr-2" />
-            <h2 className="text-3xl font-bold">Don't Miss Out on Closing Sales</h2>
+            <h2 className="text-3xl font-bold">Stay Connected with Local Businesses</h2>
           </div>
           <p className="text-xl mb-8 max-w-2xl mx-auto text-gray-300">
-            Stores are constantly closing and offering increasing discounts. 
-            Start exploring today to find the best deals.
+            Whether you're looking for deals at closing stores or excited to discover new businesses, 
+            Store Transitions has you covered.
           </p>
-          <Link href="/map" className="bg-yellow-500 text-gray-900 px-8 py-3 rounded-full font-medium hover:bg-yellow-400 transition">
-            Start Exploring
-          </Link>
+          <div className="flex flex-col md:flex-row gap-4 justify-center">
+            <Link href="/map?type=closing" className="bg-red-500 text-white px-8 py-3 rounded-full font-medium hover:bg-red-600 transition">
+              Find Closing Sales
+            </Link>
+            <Link href="/map?type=opening" className="bg-purple-500 text-white px-8 py-3 rounded-full font-medium hover:bg-purple-600 transition">
+              Discover New Stores
+            </Link>
+          </div>
         </div>
       </section>
       
@@ -278,7 +342,7 @@ export default function Home() {
             <div>
               <h3 className="font-bold text-lg mb-4">Store Transitions</h3>
               <p className="text-gray-600 mb-4">
-                Connecting shoppers with closing stores for great deals.
+                Connecting shoppers with businesses in transition for great opportunities.
               </p>
               <div className="flex space-x-4">
                 <a href="#" className="text-gray-500 hover:text-blue-600">
@@ -309,14 +373,14 @@ export default function Home() {
               <li><Link href="/blog" className="text-gray-600 hover:text-blue-600">Blog</Link></li>
               <li><Link href="/faq" className="text-gray-600 hover:text-blue-600">FAQ</Link></li>
                 <li><a href="#" className="text-gray-600 hover:text-blue-600">Support</a></li>
-                <li><a href="#" className="text-gray-600 hover:text-blue-600">Privacy Policy</a></li>
+                <li><Link href="/privacy-policy" className="text-gray-600 hover:text-blue-600">Privacy Policy</Link></li>
               </ul>
             </div>
             
             <div>
               <h3 className="font-bold text-lg mb-4">Subscribe</h3>
               <p className="text-gray-600 mb-4">
-                Stay updated with the latest closing sales and exclusive deals.
+                Stay updated with the latest store transitions and exclusive deals.
               </p>
               <form className="flex">
                 <input 

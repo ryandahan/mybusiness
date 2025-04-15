@@ -26,12 +26,29 @@ export default function Contact() {
     setError('');
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      console.log('Form submitted:', formData);
+      const response = await fetch('/api/contacts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Something went wrong. Please try again.');
+      }
+      
       setIsSubmitted(true);
+      setFormData({
+        name: '',
+        email: '',
+        subject: '',
+        message: '',
+      });
     } catch (err) {
-      setError('Failed to send your message. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to send your message. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -45,7 +62,7 @@ export default function Contact() {
             <Send size={28} className="text-green-600" />
           </div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Message Sent!</h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-lg text-gray-600 mb-6">
             Thank you for reaching out. We've received your message and will get back to you within 1-2 business days.
           </p>
           <Link 
@@ -90,8 +107,7 @@ export default function Contact() {
                     </div>
                     <div>
                       <h3 className="font-medium text-gray-900">Email</h3>
-                      <p className="text-gray-600 mt-1">info@storetransitions.com</p>
-                      <p className="text-gray-600">support@storetransitions.com</p>
+                      <p className="text-gray-600">support@discountsmap.com</p>
                     </div>
                   </div>
                   

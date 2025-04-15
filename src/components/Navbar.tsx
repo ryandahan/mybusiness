@@ -1,16 +1,53 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
-import { Menu, X, User, LogOut, Settings, ChevronDown } from 'lucide-react';
+import { Menu, X, User, LogOut, Settings, ChevronDown, Store } from 'lucide-react';
 
 export default function Navbar() {
   const { data: session, status } = useSession();
+  const router = useRouter();
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [adminDropdownOpen, setAdminDropdownOpen] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   
   const isAdmin = session?.user?.role === 'admin';
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setAdminDropdownOpen(false);
+      }
+    }
+    
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+  
+  // Handle admin navigation with loading state
+  const handleAdminNavigation = (path: string) => {
+    if (isNavigating) return;
+    
+    setIsNavigating(true);
+    setAdminDropdownOpen(false);
+    
+    // Add a slight delay to show loading indicator
+    setTimeout(() => {
+      router.push(path);
+      
+      // Reset navigation state after a short delay
+      setTimeout(() => {
+        setIsNavigating(false);
+      }, 500);
+    }, 100);
+  };
   
   return (
     <nav className="bg-white shadow-sm">
@@ -48,32 +85,53 @@ export default function Navbar() {
                 Contact
               </Link>
               
+              {/* My Stores link - only visible when logged in */}
+              {status === 'authenticated' && (
+                <Link 
+                  href="/my-stores" 
+                  className="inline-flex items-center px-1 pt-1 text-gray-900 hover:text-blue-600"
+                >
+                  <Store size={16} className="mr-1" />
+                  My Stores
+                </Link>
+              )}
+              
               {/* Admin dropdown - only visible to admin users */}
               {isAdmin && (
-                <div className="relative">
+                <div className="relative" ref={dropdownRef}>
                   <button 
                     onClick={() => setAdminDropdownOpen(!adminDropdownOpen)}
-                    onBlur={() => setTimeout(() => setAdminDropdownOpen(false), 100)}
-                    className="inline-flex items-center px-1 pt-1 text-red-600 font-medium hover:text-red-800"
+                    disabled={isNavigating}
+                    className={`inline-flex items-center px-1 pt-1 text-red-600 font-medium hover:text-red-800 ${
+                      pathname?.startsWith('/admin') ? 'border-b-2 border-red-500' : ''
+                    } ${isNavigating ? 'opacity-70 cursor-wait' : ''}`}
                   >
                     Admin Dashboard
-                    <ChevronDown size={16} className="ml-1" />
+                    <ChevronDown size={16} className={`ml-1 transition-transform ${adminDropdownOpen ? 'rotate-180' : ''}`} />
+                    
+                    {isNavigating && (
+                      <span className="ml-2 w-4 h-4 border-2 border-t-transparent border-red-600 rounded-full animate-spin"></span>
+                    )}
                   </button>
                   
-                  {adminDropdownOpen && (
+                  {adminDropdownOpen && !isNavigating && (
                     <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
-                      <Link 
-                        href="/admin/stores" 
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      <button 
+                        onClick={() => handleAdminNavigation('/admin/stores')}
+                        className={`block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ${
+                          pathname === '/admin/stores' ? 'bg-red-50 text-red-700 font-medium' : ''
+                        }`}
                       >
                         Store Management
-                      </Link>
-                      <Link 
-                        href="/admin/blogs" 
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      </button>
+                      <button 
+                        onClick={() => handleAdminNavigation('/admin/blogs')}
+                        className={`block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ${
+                          pathname === '/admin/blogs' ? 'bg-red-50 text-red-700 font-medium' : ''
+                        }`}
                       >
                         Blog Management
-                      </Link>
+                      </button>
                     </div>
                   )}
                 </div>
@@ -163,23 +221,47 @@ export default function Navbar() {
               Contact
             </Link>
             
+            {/* My Stores link for mobile - only visible when logged in */}
+            {status === 'authenticated' && (
+              <Link
+                href="/my-stores"
+                className="block pl-3 pr-4 py-2 border-l-4 border-blue-400 text-base font-medium text-blue-700 bg-blue-50"
+                onClick={() => setMenuOpen(false)}
+              >
+                My Stores
+              </Link>
+            )}
+            
             {/* Admin links for mobile - only visible to admin users */}
             {isAdmin && (
               <>
-                <Link
-                  href="/admin/stores"
-                  className="block pl-3 pr-4 py-2 border-l-4 border-red-400 text-base font-medium text-red-700 bg-red-50"
-                  onClick={() => setMenuOpen(false)}
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    handleAdminNavigation('/admin/stores');
+                  }}
+                  disabled={isNavigating}
+                  className={`block w-full text-left pl-3 pr-4 py-2 border-l-4 border-red-400 text-base font-medium text-red-700 bg-red-50 ${
+                    isNavigating ? 'opacity-70 cursor-wait' : ''
+                  }`}
                 >
                   Store Management
-                </Link>
-                <Link
-                  href="/admin/blogs"
-                  className="block pl-3 pr-4 py-2 border-l-4 border-red-400 text-base font-medium text-red-700 bg-red-50"
-                  onClick={() => setMenuOpen(false)}
+                  {isNavigating && (
+                    <span className="ml-2 inline-block w-4 h-4 border-2 border-t-transparent border-red-600 rounded-full animate-spin"></span>
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    handleAdminNavigation('/admin/blogs');
+                  }}
+                  disabled={isNavigating}
+                  className={`block w-full text-left pl-3 pr-4 py-2 border-l-4 border-red-400 text-base font-medium text-red-700 bg-red-50 ${
+                    isNavigating ? 'opacity-70 cursor-wait' : ''
+                  }`}
                 >
                   Blog Management
-                </Link>
+                </button>
               </>
             )}
           </div>

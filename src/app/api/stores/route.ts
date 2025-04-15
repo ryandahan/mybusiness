@@ -29,10 +29,9 @@ export async function POST(req: NextRequest) {
     const phone = formData.get('phone') as string;
     const email = formData.get('email') as string;
     const website = formData.get('website') as string || null;
-    const closingDate = new Date(formData.get('closingDate') as string);
-    const discountPercentage = parseInt(formData.get('discountPercentage') as string);
+    const storeType = formData.get('storeType') as 'opening' | 'closing';
     const inventoryDescription = formData.get('inventoryDescription') as string;
-    const reasonForClosing = formData.get('reasonForClosing') as string || null;
+    const reasonForClosing = formData.get('reasonForTransition') as string || null; // Changed field name here
     const ownerName = formData.get('ownerName') as string;
     const contactPreference = formData.get('contactPreference') as string;
     
@@ -55,30 +54,57 @@ export async function POST(req: NextRequest) {
     const fullAddress = `${address}, ${city}, ${state} ${zipCode}`;
     const { latitude, longitude } = await getGeocode(fullAddress);
     
+    // Create the data object with required fields
+    const storeData: any = {
+      businessName,
+      category,
+      address,
+      city,
+      state,
+      zipCode,
+      phone,
+      email,
+      website,
+      storeType,
+      inventoryDescription,
+      reasonForClosing, // Changed from reasonForTransition
+      ownerName,
+      contactPreference,
+      storeImageUrl,
+      verificationDocUrl,
+      latitude,
+      longitude,
+      userId: session.user.id,
+    };
+    
+    // Add type-specific fields
+    if (storeType === 'closing') {
+      const closingDateStr = formData.get('closingDate') as string;
+      const discountStr = formData.get('discountPercentage') as string;
+      
+      if (closingDateStr) {
+        storeData.closingDate = new Date(closingDateStr);
+      }
+      
+      if (discountStr) {
+        storeData.discountPercentage = parseInt(discountStr);
+      }
+    } else if (storeType === 'opening') {
+      const openingDateStr = formData.get('openingDate') as string;
+      const specialOffers = formData.get('specialOffers') as string;
+      
+      if (openingDateStr) {
+        storeData.openingDate = new Date(openingDateStr);
+      }
+      
+      if (specialOffers) {
+        storeData.specialOffers = specialOffers;
+      }
+    }
+    
     // Create store in database
     const store = await prisma.store.create({
-      data: {
-        businessName,
-        category,
-        address,
-        city,
-        state,
-        zipCode,
-        phone,
-        email,
-        website,
-        closingDate,
-        discountPercentage,
-        inventoryDescription,
-        reasonForClosing,
-        ownerName,
-        contactPreference,
-        storeImageUrl,
-        verificationDocUrl,
-        latitude,
-        longitude,
-        userId: session.user.id,
-      },
+      data: storeData
     });
     
     return NextResponse.json(store, { status: 201 });
@@ -93,17 +119,73 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     
     // Handle filtering params
+    const storeType = searchParams.get('storeType');
     const category = searchParams.get('category');
     const minDiscount = searchParams.get('minDiscount') ? parseInt(searchParams.get('minDiscount')!) : undefined;
     const closingBefore = searchParams.get('closingBefore') ? new Date(searchParams.get('closingBefore')!) : undefined;
+    const openingBefore = searchParams.get('openingBefore') ? new Date(searchParams.get('openingBefore')!) : undefined;
     
-    // Query for approved stores with filters
+    // Build where clause
+    const whereClause: any = {
+      isApproved: true,
+    };
+    
+    // Filter by store type
+    if (storeType && storeType !== 'all') {
+      whereClause.storeType = storeType;
+    }
+    
+    // Filter by category
+    if (category && category !== 'All Categories') {
+      whereClause.category = category;
+    }
+    
+    // Filter by discount (only for closing stores)
+    if (minDiscount) {
+      if (storeType === 'closing') {
+        whereClause.discountPercentage = { gte: minDiscount };
+      } else if (storeType === 'all' || !storeType) {
+        whereClause.AND = [
+          {
+            OR: [
+              { storeType: 'closing', discountPercentage: { gte: minDiscount } },
+              { storeType: 'opening' }
+            ]
+          }
+        ];
+      }
+    }
+    
+    // Filter by dates
+    if (closingBefore) {
+      if (storeType === 'closing' || storeType === 'all' || !storeType) {
+        if (!whereClause.AND) whereClause.AND = [];
+        whereClause.AND.push({
+          OR: [
+            { storeType: 'closing', closingDate: { lte: closingBefore } },
+            { storeType: 'opening' }
+          ]
+        });
+      }
+    }
+    
+    if (openingBefore) {
+      if (storeType === 'opening' || storeType === 'all' || !storeType) {
+        if (!whereClause.AND) whereClause.AND = [];
+        whereClause.AND.push({
+          OR: [
+            { storeType: 'opening', openingDate: { lte: openingBefore } },
+            { storeType: 'closing' }
+          ]
+        });
+      }
+    }
+    
+    // Query for stores with filters - using simplified orderBy
     const stores = await prisma.store.findMany({
-      where: {
-        isApproved: true,
-        ...(category && category !== 'All Categories' && { category }),
-        ...(minDiscount && { discountPercentage: { gte: minDiscount } }),
-        ...(closingBefore && { closingDate: { lte: closingBefore } }),
+      where: whereClause,
+      orderBy: {
+        createdAt: 'desc'
       },
     });
     

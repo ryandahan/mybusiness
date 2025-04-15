@@ -1,5 +1,6 @@
 import { StoreDetailContent } from './client-component';
 
-export default function StoreDetailPage({ params }: { params: { id: string } }) {
-  return <StoreDetailContent id={params.id} />;
+export default async function StoreDetailPage({ params }: { params: { id: string } }) {
+  const resolvedParams = await params;
+  return <StoreDetailContent id={resolvedParams.id} />;
 }

@@ -11,16 +11,20 @@ export interface StoreData {
   phone: string;
   email: string;
   website?: string;
-  closingDate: string;
-  discountPercentage: number | null;
+  storeType?: 'opening' | 'closing';
+  closingDate?: string;
+  openingDate?: string;
+  discountPercentage?: number | null;
+  specialOffers?: string;
   inventoryDescription: string;
-  reasonForClosing?: string;
+  reasonForTransition?: string;
   ownerName: string;
   contactPreference: 'email' | 'phone';
   storeImageUrl?: string;
   verificationDocUrl?: string;
   latitude: number | null;
   longitude: number | null;
+  isDefaultLocation?: boolean; // Added property for geocoding status
   isApproved: boolean;
   isFeatured?: boolean;
   createdAt: string;
@@ -35,12 +39,17 @@ export interface Store {
   category: string;
   city: string;
   state: string;
-  closingDate: string;
-  discountPercentage: number | null;
+  storeType?: 'opening' | 'closing';
+  closingDate?: string;
+  openingDate?: string;
+  discountPercentage?: number | null;
   isApproved: boolean;
   isFeatured?: boolean;
   createdAt: string;
   source?: string;
+  latitude?: number | null; // Added for map functionality
+  longitude?: number | null; // Added for map functionality
+  isDefaultLocation?: boolean; // Added for geocoding status
 }
 
 // Interface for shopper submissions
@@ -53,10 +62,14 @@ export interface StoreTip {
   state: string;
   zipCode: string;
   submitterEmail: string;
+  storeType?: 'opening' | 'closing';
+  openingDate?: string;
   discountPercentage?: number | null;
+  specialOffers?: string;
   storeImageUrl?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  isDefaultLocation?: boolean; // Added for geocoding status
   status: string;
   createdAt: string;
 }

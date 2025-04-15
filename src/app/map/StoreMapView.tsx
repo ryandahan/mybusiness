@@ -12,6 +12,7 @@ const MapComponent = dynamic(() => import('./MapComponent'), {
 
 interface StoreMapViewProps {
   filters: {
+    storeType: 'closing' | 'opening' | 'all';
     category: string;
     minDiscount: number;
     maxDistance: number;
@@ -58,14 +59,24 @@ export default function StoreMapView({ filters }: StoreMapViewProps) {
         setLoading(true);
         
         const params = new URLSearchParams();
+        
+        // Add store type to query params
+        if (filters.storeType && filters.storeType !== 'all') {
+          params.append('storeType', filters.storeType);
+        }
+        
         if (filters.category && filters.category !== 'All Categories') {
           params.append('category', filters.category);
         }
-        if (filters.minDiscount > 0) {
+        
+        if (filters.minDiscount > 0 && (filters.storeType === 'closing' || filters.storeType === 'all')) {
           params.append('minDiscount', filters.minDiscount.toString());
         }
+        
         if (filters.closingBefore) {
-          params.append('closingBefore', filters.closingBefore);
+          // Adapt parameter name based on store type
+          const dateParamName = filters.storeType === 'opening' ? 'openingBefore' : 'closingBefore';
+          params.append(dateParamName, filters.closingBefore);
         }
         
         const queryString = params.toString() ? `?${params.toString()}` : '';
@@ -114,6 +125,11 @@ export default function StoreMapView({ filters }: StoreMapViewProps) {
   const handleGeocodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     geocodeAddress(manualAddress);
+  };
+
+  // Helper function to determine if a store is an opening store
+  const isOpeningStore = (store: StoreData): boolean => {
+    return store.storeType === 'opening';
   };
 
   // Handle clicks outside of suggestions dropdown to close it
@@ -225,8 +241,24 @@ export default function StoreMapView({ filters }: StoreMapViewProps) {
                   <p><strong>Location:</strong> {selectedStore.city}, {selectedStore.state} {selectedStore.zipCode}</p>
                 </div>
                 <div>
-                  <p className="text-red-600 font-bold text-xl">{selectedStore.discountPercentage}% OFF</p>
-                  <p><strong>Closing Date:</strong> {new Date(selectedStore.closingDate).toLocaleDateString()}</p>
+                  {isOpeningStore(selectedStore) ? (
+                    <>
+                      <p className="text-green-600 font-bold text-xl">OPENING SOON</p>
+                      {selectedStore.openingDate && (
+                        <p><strong>Opening Date:</strong> {new Date(selectedStore.openingDate).toLocaleDateString()}</p>
+                      )}
+                      {selectedStore.specialOffers && (
+                        <p><strong>Special Offers:</strong> {selectedStore.specialOffers}</p>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-red-600 font-bold text-xl">{selectedStore.discountPercentage}% OFF</p>
+                      {selectedStore.closingDate && (
+                        <p><strong>Closing Date:</strong> {new Date(selectedStore.closingDate).toLocaleDateString()}</p>
+                      )}
+                    </>
+                  )}
                   <p><strong>Phone:</strong> {selectedStore.phone}</p>
                 </div>
               </div>

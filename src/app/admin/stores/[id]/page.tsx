@@ -18,10 +18,14 @@ interface StoreDetails {
   phone: string;
   email: string;
   website: string | null;
-  closingDate: string;
-  discountPercentage: number;
+  storeType: string;
+  closingDate?: string;
+  openingDate?: string;
+  discountPercentage?: number;
+  specialOffers?: string;
   inventoryDescription: string;
-  reasonForClosing: string | null;
+  reasonForClosing?: string | null;
+  reasonForTransition?: string | null;
   ownerName: string;
   contactPreference: string;
   storeImageUrl: string | null;
@@ -124,6 +128,8 @@ export default function StoreDetailPage() {
     );
   }
 
+  const isOpeningStore = store.storeType === 'opening';
+
   return (
     <div className="container mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
@@ -201,35 +207,72 @@ export default function StoreDetailPage() {
           </div>
 
           <div>
-            <h2 className="text-lg font-semibold mb-3">Closing Details</h2>
+            <h2 className="text-lg font-semibold mb-3">
+              {isOpeningStore ? "Opening Details" : "Closing Details"}
+            </h2>
             <div className="space-y-3">
-              <div className="flex">
-                <Calendar size={18} className="text-gray-500 mr-2 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium">Closing Date</p>
-                  <p>{new Date(store.closingDate).toLocaleDateString()}</p>
-                </div>
-              </div>
-              
-              <div className="flex">
-                <Tag size={18} className="text-gray-500 mr-2 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium">Discount</p>
-                  <p className="text-red-600 font-bold">{store.discountPercentage}% OFF</p>
-                </div>
-              </div>
+              {isOpeningStore ? (
+                // Opening store details
+                <>
+                  {store.openingDate && (
+                    <div className="flex">
+                      <Calendar size={18} className="text-gray-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Opening Date</p>
+                        <p>{new Date(store.openingDate).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {store.specialOffers && (
+                    <div>
+                      <p className="font-medium">Special Offers</p>
+                      <p className="mt-1 bg-gray-50 p-3 rounded-md">{store.specialOffers}</p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                // Closing store details
+                <>
+                  {store.closingDate && (
+                    <div className="flex">
+                      <Calendar size={18} className="text-gray-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Closing Date</p>
+                        <p>{new Date(store.closingDate).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {store.discountPercentage && (
+                    <div className="flex">
+                      <Tag size={18} className="text-gray-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Discount</p>
+                        <p className="text-red-600 font-bold">{store.discountPercentage}% OFF</p>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
               
               <div>
-                <p className="font-medium">Inventory Description</p>
+                <p className="font-medium">
+                  {isOpeningStore ? "Business Description" : "Inventory Description"}
+                </p>
                 <p className="mt-1 bg-gray-50 p-3 rounded-md">{store.inventoryDescription}</p>
               </div>
 
-              {store.reasonForClosing && (
+              {(isOpeningStore && store.reasonForTransition) || (!isOpeningStore && store.reasonForClosing) ? (
                 <div>
-                  <p className="font-medium">Reason for Closing</p>
-                  <p className="mt-1 bg-gray-50 p-3 rounded-md">{store.reasonForClosing}</p>
+                  <p className="font-medium">
+                    Reason for {isOpeningStore ? "Opening" : "Closing"}
+                  </p>
+                  <p className="mt-1 bg-gray-50 p-3 rounded-md">
+                    {isOpeningStore ? store.reasonForTransition : store.reasonForClosing}
+                  </p>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>

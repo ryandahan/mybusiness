@@ -129,14 +129,13 @@ export default function AdminBlogsPage() {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex space-x-2">
                     {blog.published && (
-                      <a 
-                        href={`/blog/${blog.slug}`} 
-                        target="_blank" 
+                      <Link 
+                        href={`/blog/${blog.slug}`}
                         className="text-blue-600 hover:text-blue-800"
                         title="View"
                       >
                         <Eye size={18} />
-                      </a>
+                      </Link>
                     )}
                     <button
                       onClick={() => router.push(`/admin/blogs/${blog.id}`)}

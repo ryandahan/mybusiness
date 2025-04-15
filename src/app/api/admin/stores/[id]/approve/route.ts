@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -15,8 +15,13 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const id = params.id;
+    // Get ID from context and ensure it exists - now with await
+    const { id } = await context.params;
     
+    if (!id) {
+      return NextResponse.json({ error: 'Missing ID parameter' }, { status: 400 });
+    }
+
     // Check if it's a StoreTip first
     const storeTip = await prisma.storeTip.findUnique({
       where: { id }
@@ -25,11 +30,11 @@ export async function PUT(
     if (storeTip) {
       // Extract the discount value safely
       let discountValue = 10; // Default value
-      if (typeof storeTip['discountPercentage'] === 'number') {
-        discountValue = storeTip['discountPercentage'];
+      if (typeof storeTip.discountPercentage === 'number') {
+        discountValue = storeTip.discountPercentage;
       }
       
-      // Create new store from tip
+      // Create new store from tip - without using storeType field
       const newStore = await prisma.store.create({
         data: {
           businessName: storeTip.storeName,
