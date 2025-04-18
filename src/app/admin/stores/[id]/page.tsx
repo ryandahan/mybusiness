@@ -10,6 +10,7 @@ import DocumentViewer from '@/components/DocumentViewer';
 interface StoreDetails {
   id: string;
   businessName: string;
+  storeName?: string;
   category: string;
   address: string;
   city: string;
@@ -36,6 +37,10 @@ interface StoreDetails {
   isApproved: boolean;
   createdAt: string;
   updatedAt: string;
+  isStoreTip?: boolean;
+  submitterEmail?: string;
+  notes?: string;
+  promotionEndDate?: string;
 }
 
 export default function StoreDetailPage() {
@@ -65,6 +70,30 @@ export default function StoreDetailPage() {
       const response = await fetch(`/api/admin/stores/${storeId}`);
       if (response.ok) {
         const data = await response.json();
+        
+        // Process any notes field to extract additional data
+        if (data.notes && typeof data.notes === 'string') {
+          try {
+            const parsedNotes = JSON.parse(data.notes);
+            // Add parsed data to the store object
+            if (parsedNotes.openingDate) {
+              data.openingDate = parsedNotes.openingDate;
+            }
+            if (parsedNotes.specialOffers) {
+              data.specialOffers = parsedNotes.specialOffers;
+            }
+            if (parsedNotes.discountPercentage) {
+              data.discountPercentage = parsedNotes.discountPercentage;
+            }
+            // Add this line to extract promotionEndDate
+            if (parsedNotes.promotionEndDate) {
+              data.promotionEndDate = parsedNotes.promotionEndDate;
+            }
+          } catch (error) {
+            console.error('Error parsing notes:', error);
+          }
+        }
+        
         setStore(data);
       } else {
         setError('Failed to load store details');
@@ -111,6 +140,12 @@ export default function StoreDetailPage() {
     }
   };
 
+  // Function to create a Google Maps URL from an address
+  const getGoogleMapsUrl = (address: string, city: string, state: string, zipCode: string): string => {
+    const formattedAddress = encodeURIComponent(`${address}, ${city}, ${state} ${zipCode}`);
+    return `https://www.google.com/maps/search/?api=1&query=${formattedAddress}`;
+  };
+
   if (status === 'loading' || loading) {
     return <div className="p-8 text-center">Loading...</div>;
   }
@@ -129,6 +164,8 @@ export default function StoreDetailPage() {
   }
 
   const isOpeningStore = store.storeType === 'opening';
+  const isShopperSubmission = store.isStoreTip === true;
+  const businessName = store.businessName || store.storeName || '';
 
   return (
     <div className="container mx-auto p-6">
@@ -160,8 +197,13 @@ export default function StoreDetailPage() {
 
       <div className="bg-white rounded-lg shadow-md p-6">
         <div className="mb-4">
-          <h1 className="text-2xl font-bold">{store.businessName}</h1>
+          <h1 className="text-2xl font-bold">{businessName}</h1>
           <p className="text-gray-500">{store.category}</p>
+          {isShopperSubmission && (
+            <div className="mt-2 bg-blue-50 text-blue-800 px-3 py-1 rounded inline-block">
+              Submitted by Shopper
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -172,36 +214,59 @@ export default function StoreDetailPage() {
                 <MapPin size={18} className="text-gray-500 mr-2 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="font-medium">Address</p>
-                  <p>{store.address}, {store.city}, {store.state} {store.zipCode}</p>
+                  <a 
+                    href={getGoogleMapsUrl(store.address, store.city, store.state, store.zipCode)} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-blue-600 hover:underline"
+                  >
+                    {store.address}, {store.city}, {store.state} {store.zipCode}
+                  </a>
                 </div>
               </div>
               
-              <div className="flex">
-                <Phone size={18} className="text-gray-500 mr-2 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium">Phone</p>
-                  <p>{store.phone}</p>
-                </div>
-              </div>
-              
-              <div className="flex">
-                <Mail size={18} className="text-gray-500 mr-2 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium">Email</p>
-                  <p>{store.email}</p>
-                </div>
-              </div>
-
-              {store.website && (
-                <div className="flex">
-                  <div className="text-gray-500 mr-2 flex-shrink-0 mt-0.5">🌐</div>
-                  <div>
-                    <p className="font-medium">Website</p>
-                    <a href={store.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                      {store.website}
-                    </a>
+              {!isShopperSubmission ? (
+                <>
+                  <div className="flex">
+                    <Phone size={18} className="text-gray-500 mr-2 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium">Phone</p>
+                      <p>{store.phone}</p>
+                    </div>
                   </div>
-                </div>
+                  
+                  <div className="flex">
+                    <Mail size={18} className="text-gray-500 mr-2 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium">Email</p>
+                      <p>{store.email}</p>
+                    </div>
+                  </div>
+
+                  {store.website && (
+                    <div className="flex">
+                      <div className="text-gray-500 mr-2 flex-shrink-0 mt-0.5">🌐</div>
+                      <div>
+                        <p className="font-medium">Website</p>
+                        <a href={store.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                          {store.website}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  {store.submitterEmail && (
+                    <div className="flex">
+                      <Mail size={18} className="text-gray-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Submitter Email</p>
+                        <p>{store.submitterEmail}</p>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -220,6 +285,27 @@ export default function StoreDetailPage() {
                       <div>
                         <p className="font-medium">Opening Date</p>
                         <p>{new Date(store.openingDate).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {store.discountPercentage && (
+                    <div className="flex">
+                      <Tag size={18} className="text-gray-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Opening Discount</p>
+                        <p className="text-green-600 font-bold">{store.discountPercentage}% OFF</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Add the promotion end date display here */}
+                  {isOpeningStore && store.promotionEndDate && (
+                    <div className="flex">
+                      <Calendar size={18} className="text-gray-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Promotion Ends</p>
+                        <p className="text-orange-600 font-medium">{new Date(store.promotionEndDate).toLocaleDateString()}</p>
                       </div>
                     </div>
                   )}
@@ -256,12 +342,14 @@ export default function StoreDetailPage() {
                 </>
               )}
               
-              <div>
-                <p className="font-medium">
-                  {isOpeningStore ? "Business Description" : "Inventory Description"}
-                </p>
-                <p className="mt-1 bg-gray-50 p-3 rounded-md">{store.inventoryDescription}</p>
-              </div>
+              {store.inventoryDescription && (
+                <div>
+                  <p className="font-medium">
+                    {isOpeningStore ? "Business Description" : "Inventory Description"}
+                  </p>
+                  <p className="mt-1 bg-gray-50 p-3 rounded-md">{store.inventoryDescription}</p>
+                </div>
+              )}
 
               {(isOpeningStore && store.reasonForTransition) || (!isOpeningStore && store.reasonForClosing) ? (
                 <div>
@@ -277,21 +365,23 @@ export default function StoreDetailPage() {
           </div>
         </div>
 
-        <div className="mt-6 pt-4 border-t border-gray-200">
-          <h2 className="text-lg font-semibold mb-3">Owner Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="font-medium">Owner Name</p>
-              <p>{store.ownerName}</p>
-            </div>
-            <div>
-              <p className="font-medium">Preferred Contact Method</p>
-              <p className="capitalize">{store.contactPreference}</p>
+        {!isShopperSubmission && (
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <h2 className="text-lg font-semibold mb-3">Owner Information</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="font-medium">Owner Name</p>
+                <p>{store.ownerName}</p>
+              </div>
+              <div>
+                <p className="font-medium">Preferred Contact Method</p>
+                <p className="capitalize">{store.contactPreference}</p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {(store.storeImageUrl || store.verificationDocUrl) && (
+        {(store.storeImageUrl || (store.verificationDocUrl && !isShopperSubmission)) && (
           <div className="mt-6 pt-4 border-t border-gray-200">
             <h2 className="text-lg font-semibold mb-3">Uploaded Files</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -300,19 +390,21 @@ export default function StoreDetailPage() {
                   <p className="font-medium mb-2">Store Image</p>
                   <img 
                     src={store.storeImageUrl} 
-                    alt={store.businessName} 
+                    alt={businessName} 
                     className="rounded-md shadow-sm max-w-full h-auto"
                   />
                 </div>
               )}
 
-              <div>
-                <p className="font-medium mb-2">Verification Document</p>
-                <DocumentViewer 
-                  documentKey={store.documentKey} 
-                  fallbackUrl={store.verificationDocUrl} 
-                />
-              </div>
+              {store.verificationDocUrl && !isShopperSubmission && (
+                <div>
+                  <p className="font-medium mb-2">Verification Document</p>
+                  <DocumentViewer 
+                    documentKey={store.documentKey} 
+                    fallbackUrl={store.verificationDocUrl} 
+                  />
+                </div>
+              )}
             </div>
           </div>
         )}

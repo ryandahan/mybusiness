@@ -44,6 +44,7 @@ interface GuestTipData {
   storeType: 'opening' | 'closing';
   openingDate: string;
   specialOffers: string;
+  promotionEndDate: string;
 }
 
 export default function SubmitPage() {
@@ -89,7 +90,8 @@ export default function SubmitPage() {
     discountPercentage: '',
     storeType: initialStoreType,
     openingDate: '',
-    specialOffers: ''
+    specialOffers: '',
+    promotionEndDate: ''
   });
   
   const [formStep, setFormStep] = useState(1);
@@ -387,6 +389,14 @@ export default function SubmitPage() {
       } else {
         submitData.append('openingDate', guestTipData.openingDate);
         submitData.append('specialOffers', guestTipData.specialOffers);
+        // Add discount percentage for opening stores
+        if (guestTipData.discountPercentage) {
+          submitData.append('discountPercentage', guestTipData.discountPercentage);
+        }
+        // Add promotion end date if provided
+        if (guestTipData.promotionEndDate) {
+          submitData.append('promotionEndDate', guestTipData.promotionEndDate);
+        }
       }
       
       if (guestTipData.storeImage) {
@@ -511,7 +521,8 @@ export default function SubmitPage() {
                     discountPercentage: '',
                     storeType: initialStoreType,
                     openingDate: '',
-                    specialOffers: ''
+                    specialOffers: '',
+                    promotionEndDate: ''
                   });
                 }
               }}
@@ -832,25 +843,70 @@ export default function SubmitPage() {
       <p className="text-xs text-gray-500 mt-1">If you know the discount percentage, please enter it here.</p>
     </div>
   ) : (
-    <div className="mb-4">
-      <label htmlFor="openingDate" className="block text-sm font-medium text-gray-700 mb-1">
-        Expected Opening Date (Optional)
-      </label>
-      <div className="relative">
-        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-          <Calendar size={18} className="text-gray-500" />
+    <>
+      <div className="mb-4">
+        <label htmlFor="openingDate" className="block text-sm font-medium text-gray-700 mb-1">
+          Expected Opening Date (Optional)
+        </label>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <Calendar size={18} className="text-gray-500" />
+          </div>
+          <input
+            type="date"
+            id="openingDate"
+            name="openingDate"
+            value={guestTipData.openingDate}
+            onChange={handleGuestTextChange}
+            className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+          />
         </div>
-        <input
-          type="date"
-          id="openingDate"
-          name="openingDate"
-          value={guestTipData.openingDate}
-          onChange={handleGuestTextChange}
-          className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-        />
+        <p className="text-xs text-gray-500 mt-1">If you know when the store will open, please enter it here.</p>
       </div>
-      <p className="text-xs text-gray-500 mt-1">If you know when the store will open, please enter it here.</p>
-    </div>
+      
+      <div className="mb-4">
+        <label htmlFor="promotionEndDate" className="block text-sm font-medium text-gray-700 mb-1">
+          Promotion End Date (Optional)
+        </label>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <Calendar size={18} className="text-gray-500" />
+          </div>
+          <input
+            type="date"
+            id="promotionEndDate"
+            name="promotionEndDate"
+            value={guestTipData.promotionEndDate}
+            onChange={handleGuestTextChange}
+            className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+        <p className="text-xs text-gray-500 mt-1">If you know when the promotion ends, please enter it here.</p>
+      </div>
+      
+      <div className="mb-4">
+        <label htmlFor="discountPercentage" className="block text-sm font-medium text-gray-700 mb-1">
+          Opening Discount Percentage (Optional)
+        </label>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <Tag size={18} className="text-gray-500" />
+          </div>
+          <input
+            type="number"
+            id="discountPercentage"
+            name="discountPercentage"
+            value={guestTipData.discountPercentage}
+            onChange={handleGuestTextChange}
+            className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            placeholder="e.g., 30"
+            min={1}
+            max={100}
+          />
+        </div>
+        <p className="text-xs text-gray-500 mt-1">If you know about any opening discounts, please enter the percentage here.</p>
+      </div>
+    </>
   )}
   
   <div className="mb-4">

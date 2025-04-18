@@ -17,9 +17,12 @@ export async function POST(req: NextRequest) {
     const state = formData.get('state') as string;
     const zipCode = formData.get('zipCode') as string;
     const submitterEmail = formData.get('submitterEmail') as string;
-    const storeType = formData.get('storeType') as string || 'closing'; // Add this line
+    const storeType = formData.get('storeType') as string || 'closing';
     
     const discountPercentageValue = formData.get('discountPercentage');
+    const openingDate = formData.get('openingDate') as string;
+    const specialOffers = formData.get('specialOffers') as string;
+    const promotionEndDate = formData.get('promotionEndDate') as string;
     
     const storeImage = formData.get('storeImage') as File;
     let storeImageUrl = null;
@@ -46,7 +49,22 @@ export async function POST(req: NextRequest) {
       console.error('Failed to geocode address, using default coordinates:', geoError);
     }
     
-    // Create data object first
+    // Additional data to store in notes field
+    const additionalData: { [key: string]: any } = {};
+    
+    if (openingDate) {
+      additionalData['openingDate'] = openingDate;
+    }
+    
+    if (specialOffers) {
+      additionalData['specialOffers'] = specialOffers;
+    }
+    
+    if (promotionEndDate) {
+      additionalData['promotionEndDate'] = promotionEndDate;
+    }
+    
+    // Create data object
     const tipData: any = {
       storeName,
       category,
@@ -59,7 +77,8 @@ export async function POST(req: NextRequest) {
       latitude: coordinates.latitude,
       longitude: coordinates.longitude,
       status: 'pending',
-      storeType, // Add this line
+      storeType,
+      notes: Object.keys(additionalData).length > 0 ? JSON.stringify(additionalData) : null
     };
     
     // Only add discountPercentage if it exists and is not empty

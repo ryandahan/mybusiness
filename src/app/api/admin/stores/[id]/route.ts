@@ -8,6 +8,8 @@ const prisma = new PrismaClient();
 // Define an extended type that includes documentKey
 interface EnhancedStore {
   documentKey?: string;
+  submitterType?: 'owner' | 'shopper';
+  submitterEmail?: string;
   [key: string]: any; // This allows any other properties from the original store
 }
 
@@ -31,7 +33,11 @@ export async function GET(
     
     if (store) {
       // Process store record
-      const enhancedStore: any = { ...store, isStoreTip: false };
+      const enhancedStore: EnhancedStore = { 
+        ...store, 
+        isStoreTip: false,
+        submitterType: 'owner' 
+      };
       
       if (store.verificationDocUrl) {
         try {
@@ -51,9 +57,19 @@ export async function GET(
     });
     
     if (storeTip) {
-      const enhancedTip = {
+      // Debug log to see what's in the storeTip object
+      console.log('StoreTip from database:', storeTip);
+      
+      const enhancedTip: EnhancedStore = {
         ...storeTip,
-        isStoreTip: true
+        isStoreTip: true,
+        submitterType: 'shopper',
+        // Use the storeTip's submitterEmail as the submitterEmail
+        submitterEmail: storeTip.submitterEmail,
+        // Convert storeName to businessName for consistency
+        businessName: storeTip.storeName,
+        // ADDED THIS LINE TO FIX THE ISSUE:
+        discountPercentage: storeTip.discountPercentage
       };
       
       return NextResponse.json(enhancedTip);
