@@ -35,15 +35,36 @@ export async function POST(req: NextRequest) {
     const ownerName = formData.get('ownerName') as string;
     const contactPreference = formData.get('contactPreference') as string;
     
-    // Handle file uploads
-    const storeImage = formData.get('storeImage') as File;
+    // Handle multiple file uploads
+    // Get all files with the 'storeImages' name
+    const storeImages: File[] = [];
+    formData.getAll('storeImages').forEach(item => {
+      if (item instanceof File) {
+        storeImages.push(item);
+      }
+    });
+    
+    // Keep the single file upload for backward compatibility
+    const singleStoreImage = formData.get('storeImage');
+    if (singleStoreImage instanceof File) {
+      storeImages.push(singleStoreImage);
+    }
+    
     const verificationDoc = formData.get('verificationDocuments') as File;
     
     let storeImageUrl = null;
     let verificationDocUrl = null;
+    const uploadedImageUrls: string[] = [];
     
-    if (storeImage) {
-      storeImageUrl = await uploadFile(storeImage, 'store-images');
+    // Upload all store images
+    for (const image of storeImages) {
+      const imageUrl = await uploadFile(image, 'store-images');
+      uploadedImageUrls.push(imageUrl);
+    }
+    
+    // For backward compatibility, set the main storeImageUrl to the first image if available
+    if (uploadedImageUrls.length > 0) {
+      storeImageUrl = uploadedImageUrls[0];
     }
     
     if (verificationDoc) {
@@ -102,9 +123,19 @@ export async function POST(req: NextRequest) {
       }
     }
     
-    // Create store in database
+    // Create store in database with related images
     const store = await prisma.store.create({
-      data: storeData
+      data: {
+        ...storeData,
+        images: {
+          create: uploadedImageUrls.map(url => ({
+            url: url
+          }))
+        }
+      },
+      include: {
+        images: true // Include images in the response
+      }
     });
     
     return NextResponse.json(store, { status: 201 });
@@ -181,12 +212,15 @@ export async function GET(req: NextRequest) {
       }
     }
     
-    // Query for stores with filters - using simplified orderBy
+    // Query for stores with filters - including related images
     const stores = await prisma.store.findMany({
       where: whereClause,
       orderBy: {
         createdAt: 'desc'
       },
+      include: {
+        images: true // Include the related images
+      }
     });
     
     return NextResponse.json(stores);

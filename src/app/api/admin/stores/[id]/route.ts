@@ -5,12 +5,12 @@ import { authOptions } from '@/lib/auth';
 
 const prisma = new PrismaClient();
 
-// Define an extended type that includes documentKey
 interface EnhancedStore {
   documentKey?: string;
   submitterType?: 'owner' | 'shopper';
   submitterEmail?: string;
-  [key: string]: any; // This allows any other properties from the original store
+  storeImages?: string[];
+  [key: string]: any;
 }
 
 export async function GET(
@@ -26,17 +26,18 @@ export async function GET(
     const params = await context.params;
     const id = params.id;
     
-    // Try to find in Store first
+    // Try to find in Store first with related images
     const store = await prisma.store.findUnique({
-      where: { id }
+      where: { id },
+      include: { images: true }
     });
     
     if (store) {
-      // Process store record
       const enhancedStore: EnhancedStore = { 
         ...store, 
         isStoreTip: false,
-        submitterType: 'owner' 
+        submitterType: 'owner',
+        storeImages: store.images.map(img => img.url)
       };
       
       if (store.verificationDocUrl) {
@@ -51,25 +52,23 @@ export async function GET(
       return NextResponse.json(enhancedStore);
     }
     
-    // If not in Store, check StoreTip
+    // If not in Store, check StoreTip with related images
     const storeTip = await prisma.storeTip.findUnique({
-      where: { id }
+      where: { id },
+      include: { images: true }
     });
     
     if (storeTip) {
-      // Debug log to see what's in the storeTip object
       console.log('StoreTip from database:', storeTip);
       
       const enhancedTip: EnhancedStore = {
         ...storeTip,
         isStoreTip: true,
         submitterType: 'shopper',
-        // Use the storeTip's submitterEmail as the submitterEmail
         submitterEmail: storeTip.submitterEmail,
-        // Convert storeName to businessName for consistency
         businessName: storeTip.storeName,
-        // ADDED THIS LINE TO FIX THE ISSUE:
-        discountPercentage: storeTip.discountPercentage
+        discountPercentage: storeTip.discountPercentage,
+        storeImages: storeTip.images.map(img => img.url)
       };
       
       return NextResponse.json(enhancedTip);

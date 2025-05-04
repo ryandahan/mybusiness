@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle, XCircle, Phone, Mail, Calendar, Tag, MapPin } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, Phone, Mail, Calendar, Tag, MapPin, Image as ImageIcon } from 'lucide-react';
 import DocumentViewer from '@/components/DocumentViewer';
 
 interface StoreDetails {
@@ -16,24 +16,25 @@ interface StoreDetails {
   city: string;
   state: string;
   zipCode: string;
-  phone: string;
-  email: string;
-  website: string | null;
+  phone?: string;
+  email?: string;
+  website?: string | null;
   storeType: string;
   closingDate?: string;
   openingDate?: string;
   discountPercentage?: number;
   specialOffers?: string;
-  inventoryDescription: string;
+  inventoryDescription?: string;
   reasonForClosing?: string | null;
   reasonForTransition?: string | null;
-  ownerName: string;
-  contactPreference: string;
-  storeImageUrl: string | null;
-  verificationDocUrl: string | null;
+  ownerName?: string;
+  contactPreference?: string;
+  storeImageUrl?: string | null;
+  storeImages?: string[];
+  verificationDocUrl?: string | null;
   documentKey?: string;
-  latitude: number | null;
-  longitude: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
   isApproved: boolean;
   createdAt: string;
   updatedAt: string;
@@ -67,40 +68,41 @@ export default function StoreDetailPage() {
     if (!storeId) return;
     
     try {
+      setLoading(true);
       const response = await fetch(`/api/admin/stores/${storeId}`);
-      if (response.ok) {
-        const data = await response.json();
-        
-        // Process any notes field to extract additional data
-        if (data.notes && typeof data.notes === 'string') {
-          try {
-            const parsedNotes = JSON.parse(data.notes);
-            // Add parsed data to the store object
-            if (parsedNotes.openingDate) {
-              data.openingDate = parsedNotes.openingDate;
-            }
-            if (parsedNotes.specialOffers) {
-              data.specialOffers = parsedNotes.specialOffers;
-            }
-            if (parsedNotes.discountPercentage) {
-              data.discountPercentage = parsedNotes.discountPercentage;
-            }
-            // Add this line to extract promotionEndDate
-            if (parsedNotes.promotionEndDate) {
-              data.promotionEndDate = parsedNotes.promotionEndDate;
-            }
-          } catch (error) {
-            console.error('Error parsing notes:', error);
-          }
-        }
-        
-        setStore(data);
-      } else {
-        setError('Failed to load store details');
+      
+      if (!response.ok) {
+        throw new Error(`Failed to load store details: ${response.status}`);
       }
+      
+      const data = await response.json();
+      
+      // Process notes field to extract additional data
+      if (data.notes && typeof data.notes === 'string') {
+        try {
+          const parsedNotes = JSON.parse(data.notes);
+          // Add parsed data to the store object
+          if (parsedNotes.openingDate) {
+            data.openingDate = parsedNotes.openingDate;
+          }
+          if (parsedNotes.specialOffers) {
+            data.specialOffers = parsedNotes.specialOffers;
+          }
+          if (parsedNotes.discountPercentage) {
+            data.discountPercentage = parsedNotes.discountPercentage;
+          }
+          if (parsedNotes.promotionEndDate) {
+            data.promotionEndDate = parsedNotes.promotionEndDate;
+          }
+        } catch (error) {
+          console.error('Error parsing notes:', error);
+        }
+      }
+      
+      setStore(data);
     } catch (error) {
-      setError('An error occurred');
       console.error('Error fetching store details:', error);
+      setError(error instanceof Error ? error.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
@@ -116,9 +118,12 @@ export default function StoreDetailPage() {
       
       if (response.ok) {
         setStore(prev => prev ? { ...prev, isApproved: true } : null);
+      } else {
+        throw new Error(`Failed to approve store: ${response.status}`);
       }
     } catch (error) {
       console.error('Error approving store:', error);
+      alert('Failed to approve store. Please try again.');
     }
   };
 
@@ -133,9 +138,12 @@ export default function StoreDetailPage() {
         
         if (response.ok) {
           router.push('/admin/stores');
+        } else {
+          throw new Error(`Failed to reject store: ${response.status}`);
         }
       } catch (error) {
         console.error('Error rejecting store:', error);
+        alert('Failed to reject store. Please try again.');
       }
     }
   };
@@ -225,7 +233,7 @@ export default function StoreDetailPage() {
                 </div>
               </div>
               
-              {!isShopperSubmission ? (
+              {!isShopperSubmission && store.phone ? (
                 <>
                   <div className="flex">
                     <Phone size={18} className="text-gray-500 mr-2 flex-shrink-0 mt-0.5" />
@@ -299,7 +307,6 @@ export default function StoreDetailPage() {
                     </div>
                   )}
                   
-                  {/* Add the promotion end date display here */}
                   {isOpeningStore && store.promotionEndDate && (
                     <div className="flex">
                       <Calendar size={18} className="text-gray-500 mr-2 flex-shrink-0 mt-0.5" />
@@ -365,7 +372,7 @@ export default function StoreDetailPage() {
           </div>
         </div>
 
-        {!isShopperSubmission && (
+        {!isShopperSubmission && store.ownerName && (
           <div className="mt-6 pt-4 border-t border-gray-200">
             <h2 className="text-lg font-semibold mb-3">Owner Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -373,41 +380,75 @@ export default function StoreDetailPage() {
                 <p className="font-medium">Owner Name</p>
                 <p>{store.ownerName}</p>
               </div>
-              <div>
-                <p className="font-medium">Preferred Contact Method</p>
-                <p className="capitalize">{store.contactPreference}</p>
+              {store.contactPreference && (
+                <div>
+                  <p className="font-medium">Preferred Contact Method</p>
+                  <p className="capitalize">{store.contactPreference}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Image Display Section */}
+        <div className="mt-6 pt-4 border-t border-gray-200">
+          <h2 className="text-lg font-semibold mb-3">Uploaded Files</h2>
+          
+          {/* Handle images from storeImages array */}
+          {store.storeImages && store.storeImages.length > 0 ? (
+            <div>
+              <p className="font-medium mb-2">Store Images</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {store.storeImages.map((imageUrl, index) => (
+                  <div key={index} className="relative">
+                    <img 
+                      src={imageUrl}
+                      alt={`${businessName} - Image ${index + 1}`}
+                      className="rounded-md shadow-sm w-full h-auto object-cover"
+                      onError={(e) => {
+                        console.error(`Image failed to load: ${imageUrl}`);
+                        e.currentTarget.src = '/placeholder-store.jpg';
+                      }}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
-        )}
-
-        {(store.storeImageUrl || (store.verificationDocUrl && !isShopperSubmission)) && (
-          <div className="mt-6 pt-4 border-t border-gray-200">
-            <h2 className="text-lg font-semibold mb-3">Uploaded Files</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {store.storeImageUrl && (
-                <div>
-                  <p className="font-medium mb-2">Store Image</p>
-                  <img 
-                    src={store.storeImageUrl} 
-                    alt={businessName} 
-                    className="rounded-md shadow-sm max-w-full h-auto"
-                  />
-                </div>
-              )}
-
-              {store.verificationDocUrl && !isShopperSubmission && (
-                <div>
-                  <p className="font-medium mb-2">Verification Document</p>
-                  <DocumentViewer 
-                    documentKey={store.documentKey} 
-                    fallbackUrl={store.verificationDocUrl} 
-                  />
-                </div>
-              )}
+          ) : store.storeImageUrl ? (
+            <div>
+              <p className="font-medium mb-2">Store Image</p>
+              <div className="relative">
+                <img 
+                  src={store.storeImageUrl}
+                  alt={businessName}
+                  className="rounded-md shadow-sm max-w-full h-auto max-h-96 object-contain"
+                  onError={(e) => {
+                    console.error(`Image failed to load: ${store.storeImageUrl}`);
+                    e.currentTarget.src = '/placeholder-store.jpg';
+                  }}
+                />
+              </div>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="flex items-center justify-center h-48 bg-gray-100 rounded-md">
+              <div className="text-center text-gray-500">
+                <ImageIcon size={48} className="mx-auto mb-2 opacity-30" />
+                <p>No store images available</p>
+              </div>
+            </div>
+          )}
+
+          {/* Verification Document Display */}
+          {store.verificationDocUrl && !isShopperSubmission && (
+            <div className="mt-6">
+              <p className="font-medium mb-2">Verification Document</p>
+              <DocumentViewer 
+                documentKey={store.documentKey || store.verificationDocUrl} 
+                fallbackUrl={store.verificationDocUrl} 
+              />
+            </div>
+          )}
+        </div>
 
         <div className="mt-6 pt-4 border-t border-gray-200">
           <p className="text-sm text-gray-500">

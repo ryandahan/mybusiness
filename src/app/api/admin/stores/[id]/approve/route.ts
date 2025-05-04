@@ -1,3 +1,4 @@
+// C:\Users\Raeean\store-transitions\src\app\api\admin\stores\[id]\approve\route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { PrismaClient } from '@prisma/client';
@@ -15,7 +16,6 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Get ID from context and ensure it exists - now with await
     const { id } = await context.params;
     
     if (!id) {
@@ -24,7 +24,8 @@ export async function PUT(
 
     // Check if it's a StoreTip first
     const storeTip = await prisma.storeTip.findUnique({
-      where: { id }
+      where: { id },
+      include: { images: true } // Include related images
     });
     
     if (storeTip) {
@@ -34,7 +35,7 @@ export async function PUT(
         discountValue = storeTip.discountPercentage;
       }
       
-      // Create new store from tip - without using storeType field
+      // Create new store from tip
       const newStore = await prisma.store.create({
         data: {
           businessName: storeTip.storeName,
@@ -53,11 +54,24 @@ export async function PUT(
           storeImageUrl: storeTip.storeImageUrl,
           latitude: storeTip.latitude,
           longitude: storeTip.longitude,
-          isApproved: true
+          isApproved: true,
+          storeType: storeTip.storeType || 'closing'
         }
       });
+
+      // Transfer images if they exist
+      if (storeTip.images && storeTip.images.length > 0) {
+        for (const image of storeTip.images) {
+          await prisma.storeImage.create({
+            data: {
+              url: image.url,
+              storeId: newStore.id
+            }
+          });
+        }
+      }
       
-      // Delete the tip
+      // Delete the tip and its images (cascade should handle this automatically)
       await prisma.storeTip.delete({
         where: { id }
       });

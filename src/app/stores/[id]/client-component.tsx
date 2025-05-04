@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import Navbar from '@/components/Navbar';
 import { MapPin, Calendar, Tag, Phone, Mail, Edit } from 'lucide-react';
 
@@ -23,9 +24,12 @@ interface Store {
   inventoryDescription: string;
   reasonForClosing?: string;
   storeImageUrl?: string | null;
+  storeImages?: string[]; // Added support for multiple images
+  userId?: string; // Added to check ownership
 }
 
 export function StoreDetailContent({ id }: { id: string }) {
+  const { data: session } = useSession();
   const [store, setStore] = useState<Store | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -49,6 +53,9 @@ export function StoreDetailContent({ id }: { id: string }) {
 
     fetchStore();
   }, [id]);
+
+  // Check if user is admin or store owner
+  const isAdminOrOwner = session?.user?.role === 'admin' || session?.user?.id === store?.userId;
 
   if (loading) return (
     <main className="flex min-h-screen flex-col">
@@ -83,11 +90,20 @@ export function StoreDetailContent({ id }: { id: string }) {
         </Link>
         
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          {store.storeImageUrl && (
+          {/* Display multiple images if available, otherwise fallback to single image */}
+          {store.storeImages && store.storeImages.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+              {store.storeImages.map((imageUrl, index) => (
+                <div key={index} className="h-64 overflow-hidden rounded">
+                  <img src={imageUrl} alt={`${store.businessName} - ${index + 1}`} className="w-full h-full object-cover" />
+                </div>
+              ))}
+            </div>
+          ) : store.storeImageUrl ? (
             <div className="h-64 overflow-hidden">
               <img src={store.storeImageUrl} alt={store.businessName} className="w-full h-full object-cover" />
             </div>
-          )}
+          ) : null}
           
           <div className="p-6">
             <div className="mb-4 flex justify-between items-start">
@@ -166,15 +182,18 @@ export function StoreDetailContent({ id }: { id: string }) {
               </div>
             )}
 
-            <div className="mt-6 flex justify-end">
-              <Link 
-                href={`/stores/${id}/edit`}
-                className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
-              >
-                <Edit size={16} className="mr-2" />
-                Edit Store
-              </Link>
-            </div>
+            {/* Only show Edit button for admin or owner */}
+            {isAdminOrOwner && (
+              <div className="mt-6 flex justify-end">
+                <Link 
+                  href={`/stores/${id}/edit`}
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+                >
+                  <Edit size={16} className="mr-2" />
+                  Edit Store
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>

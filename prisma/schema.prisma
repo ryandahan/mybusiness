@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Store {
-  id                   String   @id @default(cuid())
+  id                   String       @id @default(cuid())
   businessName         String
   category             String
   address              String
@@ -18,29 +18,41 @@ model Store {
   phone                String
   email                String
   website              String?
-  storeType            String?  // Optional
-  openingDate          DateTime?
   closingDate          DateTime?
   discountPercentage   Int?
-  specialOffers        String?
   inventoryDescription String
-  reasonForClosing     String?  // Changed from reasonForTransition
   ownerName            String
   contactPreference    String
   storeImageUrl        String?
   verificationDocUrl   String?
   latitude             Float?
   longitude            Float?
-  isApproved           Boolean  @default(false)
-  isFeatured           Boolean  @default(false)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  isApproved           Boolean      @default(false)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
   userId               String?
-  user                 User?    @relation(fields: [userId], references: [id])
+  isFeatured           Boolean      @default(false)
+  openingDate          DateTime?
+  specialOffers        String?
+  storeType            String?
+  reasonForClosing     String?
+  user                 User?        @relation(fields: [userId], references: [id])
+  images               StoreImage[]
+
   @@index([isApproved, createdAt])
   @@index([isFeatured])
   @@index([city, state])
   @@index([storeType])
+}
+
+model StoreImage {
+  id        String   @id @default(cuid())
+  url       String
+  storeId   String
+  createdAt DateTime @default(now())
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId])
 }
 
 model User {
@@ -56,40 +68,52 @@ model User {
   resetPasswordExpires DateTime?
   resetPasswordToken   String?
   verificationToken    String?
-  stores               Store[]
   blogs                Blog[]
+  stores               Store[]
 }
 
 model StoreTip {
-  id                   String   @id @default(cuid())
-  storeName            String
-  category             String
-  address              String
-  city                 String
-  state                String
-  zipCode              String
-  submitterEmail       String
-  storeImageUrl        String?
-  discountPercentage   Int?
-  storeType            String   @default("closing")
-  latitude             Float?
-  longitude            Float?
-  status               String   @default("pending") 
-  notes                String?
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  id                 String          @id @default(cuid())
+  storeName          String
+  category           String
+  address            String
+  city               String
+  state              String
+  zipCode            String
+  submitterEmail     String
+  storeImageUrl      String?
+  latitude           Float?
+  longitude          Float?
+  status             String          @default("pending")
+  notes              String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  discountPercentage Int?
+  storeType          String          @default("closing")
+  images             StoreTipImage[]
+}
+
+model StoreTipImage {
+  id         String   @id @default(cuid())
+  url        String
+  storeTipId String
+  createdAt  DateTime @default(now())
+  storeTip   StoreTip @relation(fields: [storeTipId], references: [id], onDelete: Cascade)
+
+  @@index([storeTipId])
 }
 
 model Blog {
-  id                   String    @id @default(cuid())
-  title                String
-  slug                 String    @unique
-  content              String    @db.Text
-  imageUrl             String?
-  published            Boolean   @default(false)
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
-  userId               String
-  user                 User      @relation(fields: [userId], references: [id])
+  id        String   @id @default(cuid())
+  title     String
+  slug      String   @unique
+  content   String
+  imageUrl  String?
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
   @@index([published])
 }

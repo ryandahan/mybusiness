@@ -1,33 +1,34 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
+const prisma = globalForPrisma.prisma || new PrismaClient();
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 export async function GET() {
   try {
-    // Fetch featured stores of both types without using select
-    const stores = await prisma.store.findMany({
-      where: { 
-        isApproved: true,
-        isFeatured: {
-          equals: true
-        }
+    const featuredStores = await prisma.store.findMany({
+      where: {
+        isFeatured: true,
+        isApproved: true
       },
-      // Remove the select clause to avoid type errors
-      // Prisma will return all fields by default
+      include: {
+        images: true
+      },
       orderBy: {
         createdAt: 'desc'
       }
     });
-    
-    // Return empty array if no featured stores found
-    if (stores.length === 0) {
-      return NextResponse.json([]);
-    }
-    
-    return NextResponse.json(stores);
+
+    // Map the response to include the images array
+    const mappedStores = featuredStores.map(store => ({
+      ...store,
+      storeImages: store.images.map(img => img.url)
+    }));
+
+    return NextResponse.json(mappedStores);
   } catch (error) {
     console.error('Error fetching featured stores:', error);
-    return NextResponse.json({ error: 'An error occurred' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch featured stores' }, { status: 500 });
   }
 }

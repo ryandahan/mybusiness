@@ -14,6 +14,7 @@ interface FeaturedStore {
   discountPercentage: number | null;
   specialOffers: string | null;
   storeImageUrl?: string | null;
+  storeImages?: string[]; // Added support for multiple images
   storeType: string;
   openingDate?: string | null;
   closingDate?: string | null;
@@ -244,7 +245,14 @@ export default function Home() {
                     <Link href={`/stores/${store.id}`} className="block group">
                       <div className="bg-white rounded-lg overflow-hidden shadow-md transition hover:shadow-lg h-full">
                         <div className="relative h-48 bg-gray-200">
-                          {store.storeImageUrl ? (
+                          {/* UPDATED: Check storeImages first, then fallback to storeImageUrl */}
+                          {(store.storeImages && store.storeImages.length > 0) ? (
+                            <img 
+                              src={store.storeImages[0]} 
+                              alt={store.businessName || 'Store image'} 
+                              className="w-full h-full object-cover" 
+                            />
+                          ) : store.storeImageUrl ? (
                             <img 
                               src={store.storeImageUrl} 
                               alt={store.businessName || 'Store image'} 

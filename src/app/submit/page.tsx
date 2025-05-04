@@ -3,7 +3,7 @@ import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Calendar, Clock, MapPin, Building, Tag, Image, Phone, Mail, Info, Check, User, Store, PlusCircle, ArrowLeft } from 'lucide-react';
+import { Calendar, Clock, MapPin, Building, Tag, Image, Phone, Mail, Info, Check, User, Store, PlusCircle, ArrowLeft, X } from 'lucide-react';
 import heic2any from 'heic2any';
 import { geocodeAddressComponents } from '@/lib/geocoding';
 
@@ -26,7 +26,8 @@ interface FormData {
   reasonForTransition: string;
   ownerName: string;
   contactPreference: 'email' | 'phone';
-  storeImage: File | null;
+  storeImage: File | null;  // Keep for backward compatibility
+  storeImages: File[];      // New field for multiple images
   verificationDocuments: File | null;
   agreedToTerms: boolean;
 }
@@ -38,7 +39,8 @@ interface GuestTipData {
   city: string;
   state: string;
   zipCode: string;
-  storeImage: File | null;
+  storeImage: File | null;  // Keep for backward compatibility
+  storeImages: File[];      // New field for multiple images
   submitterEmail: string;
   discountPercentage: string;
   storeType: 'opening' | 'closing';
@@ -74,6 +76,7 @@ export default function SubmitPage() {
     ownerName: '',
     contactPreference: 'email',
     storeImage: null,
+    storeImages: [],
     verificationDocuments: null,
     agreedToTerms: false
   });
@@ -86,6 +89,7 @@ export default function SubmitPage() {
     state: '',
     zipCode: '',
     storeImage: null,
+    storeImages: [],
     submitterEmail: '',
     discountPercentage: '',
     storeType: initialStoreType,
@@ -182,25 +186,48 @@ export default function SubmitPage() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, files } = e.target;
     if (!files || files.length === 0) {
-      setFormData({
-        ...formData,
-        [name]: null
-      });
+      if (name === 'storeImages') {
+        setFormData({
+          ...formData,
+          storeImages: []
+        });
+      } else {
+        setFormData({
+          ...formData,
+          [name]: null
+        });
+      }
       return;
     }
     
     try {
-      let file = files[0];
-      
-      // Only process image files, not documents
-      if (name === 'storeImage') {
-        file = await processImageFile(file);
+      if (name === 'storeImages') {
+        // Handle multiple files
+        const processedFiles: File[] = [];
+        
+        for (let i = 0; i < files.length; i++) {
+          const processedFile = await processImageFile(files[i]);
+          processedFiles.push(processedFile);
+        }
+        
+        setFormData({
+          ...formData,
+          storeImages: processedFiles
+        });
+      } else if (name === 'storeImage') {
+        // For backward compatibility - single file upload
+        const file = await processImageFile(files[0]);
+        setFormData({
+          ...formData,
+          [name]: file
+        });
+      } else {
+        // For other files like verification documents
+        setFormData({
+          ...formData,
+          [name]: files[0]
+        });
       }
-      
-      setFormData({
-        ...formData,
-        [name]: file
-      });
     } catch (error) {
       console.error('Error processing file:', error);
       setErrorMessage(error instanceof Error ? error.message : 'Error processing file. Please try a different file format.');
@@ -210,25 +237,47 @@ export default function SubmitPage() {
   const handleGuestFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, files } = e.target;
     if (!files || files.length === 0) {
-      setGuestTipData({
-        ...guestTipData,
-        [name]: null
-      });
+      if (name === 'storeImages') {
+        setGuestTipData({
+          ...guestTipData,
+          storeImages: []
+        });
+      } else {
+        setGuestTipData({
+          ...guestTipData,
+          [name]: null
+        });
+      }
       return;
     }
     
     try {
-      let file = files[0];
-      
-      // Process image file if it's HEIC
-      if (name === 'storeImage') {
-        file = await processImageFile(file);
+      if (name === 'storeImages') {
+        // Handle multiple files
+        const processedFiles: File[] = [];
+        
+        for (let i = 0; i < files.length; i++) {
+          const processedFile = await processImageFile(files[i]);
+          processedFiles.push(processedFile);
+        }
+        
+        setGuestTipData({
+          ...guestTipData,
+          storeImages: processedFiles
+        });
+      } else if (name === 'storeImage') {
+        // For backward compatibility - single file upload
+        const file = await processImageFile(files[0]);
+        setGuestTipData({
+          ...guestTipData,
+          [name]: file
+        });
+      } else {
+        setGuestTipData({
+          ...guestTipData,
+          [name]: files[0]
+        });
       }
-      
-      setGuestTipData({
-        ...guestTipData,
-        [name]: file
-      });
     } catch (error) {
       console.error('Error processing file:', error);
       setErrorMessage(error instanceof Error ? error.message : 'Error processing file. Please try a different file format.');
@@ -254,6 +303,22 @@ export default function SubmitPage() {
     setGuestTipData({
       ...guestTipData,
       storeType: type
+    });
+  };
+  
+  // Remove an image from the storeImages array
+  const removeImage = (index: number) => {
+    setFormData({
+      ...formData,
+      storeImages: formData.storeImages.filter((_, i) => i !== index)
+    });
+  };
+  
+  // Remove a guest image from the storeImages array
+  const removeGuestImage = (index: number) => {
+    setGuestTipData({
+      ...guestTipData,
+      storeImages: guestTipData.storeImages.filter((_, i) => i !== index)
     });
   };
   
@@ -297,6 +362,12 @@ export default function SubmitPage() {
       submitData.append('ownerName', formData.ownerName);
       submitData.append('contactPreference', formData.contactPreference);
       
+      // Add multiple images to the form data
+      formData.storeImages.forEach((file, index) => {
+        submitData.append('storeImages', file);
+      });
+      
+      // Also append the single image for backward compatibility
       if (formData.storeImage) {
         submitData.append('storeImage', formData.storeImage);
       }
@@ -399,6 +470,12 @@ export default function SubmitPage() {
         }
       }
       
+      // Add multiple images to the form data
+      guestTipData.storeImages.forEach((file, index) => {
+        submitData.append('storeImages', file);
+      });
+      
+      // Also append the single image for backward compatibility
       if (guestTipData.storeImage) {
         submitData.append('storeImage', guestTipData.storeImage);
       }
@@ -505,6 +582,7 @@ export default function SubmitPage() {
                     ownerName: '',
                     contactPreference: 'email',
                     storeImage: null,
+                    storeImages: [],
                     verificationDocuments: null,
                     agreedToTerms: false
                   });
@@ -517,6 +595,7 @@ export default function SubmitPage() {
                     state: '',
                     zipCode: '',
                     storeImage: null,
+                    storeImages: [],
                     submitterEmail: '',
                     discountPercentage: '',
                     storeType: initialStoreType,
@@ -932,18 +1011,46 @@ export default function SubmitPage() {
   </div>
   
   <div className="mb-4">
-    <label htmlFor="storeImage" className="block text-sm font-medium text-gray-700 mb-1">
-      Store Image
+    <label htmlFor="storeImages" className="block text-sm font-medium text-gray-700 mb-1">
+      Store Images
     </label>
     <input
       type="file"
-      id="storeImage"
-      name="storeImage"
+      id="storeImages"
+      name="storeImages"
       onChange={handleGuestFileChange}
       accept="image/jpeg,image/png,image/gif,image/webp,.heic,.HEIC"
       className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+      multiple  // Enable multiple file selection
     />
-    <p className="text-xs text-gray-500 mt-1">Supported formats: JPEG, PNG, GIF, WEBP, HEIC (iPhone photos)</p>
+    <p className="text-xs text-gray-500 mt-1">You can select multiple images. Supported formats: JPEG, PNG, GIF, WEBP, HEIC (iPhone photos)</p>
+    
+    {/* Preview of selected images */}
+    {guestTipData.storeImages.length > 0 && (
+      <div className="mt-3">
+        <p className="text-sm font-medium text-gray-700 mb-2">Selected Images:</p>
+        <div className="flex flex-wrap gap-2">
+          {guestTipData.storeImages.map((image, index) => (
+            <div key={index} className="relative group">
+              <div className="w-24 h-24 border rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
+                <img 
+                  src={URL.createObjectURL(image)} 
+                  alt={`Preview ${index + 1}`} 
+                  className="max-w-full max-h-full object-contain"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => removeGuestImage(index)}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 focus:outline-none"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
   </div>
   
   <div className="flex justify-between mt-6">
@@ -1446,18 +1553,46 @@ export default function SubmitPage() {
             </div>
             
             <div className="mb-4">
-              <label htmlFor="storeImage" className="block text-sm font-medium text-gray-700 mb-1">
-                Store Image (Optional)
+              <label htmlFor="storeImages" className="block text-sm font-medium text-gray-700 mb-1">
+                Store Images
               </label>
               <input
                 type="file"
-                id="storeImage"
-                name="storeImage"
+                id="storeImages"
+                name="storeImages"
                 onChange={handleFileChange}
                 accept="image/jpeg,image/png,image/gif,image/webp,.heic,.HEIC"
                 className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                multiple  // Enable multiple file selection
               />
-              <p className="text-xs text-gray-500 mt-1">Supported formats: JPEG, PNG, GIF, WEBP, HEIC (iPhone photos)</p>
+              <p className="text-xs text-gray-500 mt-1">You can select multiple images. Supported formats: JPEG, PNG, GIF, WEBP, HEIC (iPhone photos)</p>
+              
+              {/* Preview of selected images */}
+              {formData.storeImages.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Selected Images:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.storeImages.map((image, index) => (
+                      <div key={index} className="relative group">
+                        <div className="w-24 h-24 border rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
+                          <img 
+                            src={URL.createObjectURL(image)} 
+                            alt={`Preview ${index + 1}`} 
+                            className="max-w-full max-h-full object-contain"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 focus:outline-none"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             
             <div className="mb-4">
@@ -1514,8 +1649,8 @@ export default function SubmitPage() {
               </button>
             </div>
           </div>
-          )}
-     </form>
-   </div>
- );
+        )}
+      </form>
+    </div>
+  );
 }

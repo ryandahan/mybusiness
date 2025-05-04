@@ -24,10 +24,11 @@ export async function POST(req: NextRequest) {
     const specialOffers = formData.get('specialOffers') as string;
     const promotionEndDate = formData.get('promotionEndDate') as string;
     
+    // Legacy single image handling
     const storeImage = formData.get('storeImage') as File;
     let storeImageUrl = null;
     
-    if (storeImage) {
+    if (storeImage && storeImage.size > 0) {
       storeImageUrl = await uploadFile(storeImage, 'store-tip-images');
     }
     
@@ -86,9 +87,38 @@ export async function POST(req: NextRequest) {
       tipData.discountPercentage = parseInt(discountPercentageValue.toString(), 10);
     }
     
+    // Create the storeTip record
     const storeTip = await prisma.storeTip.create({
       data: tipData
     });
+    
+    // Process multiple images
+    const storeImagesEntries = formData.getAll('storeImages');
+    
+    if (storeImagesEntries && storeImagesEntries.length > 0) {
+      const imagePromises = storeImagesEntries.map(async (fileEntry) => {
+        if (fileEntry instanceof File && fileEntry.size > 0) {
+          try {
+            const imageUrl = await uploadFile(fileEntry, 'store-tip-images');
+            
+            // Create an entry in the StoreTipImage table
+            return prisma.storeTipImage.create({
+              data: {
+                url: imageUrl,
+                storeTipId: storeTip.id
+              }
+            });
+          } catch (uploadError) {
+            console.error('Error uploading multiple image:', uploadError);
+            return null;
+          }
+        }
+        return null;
+      });
+      
+      // Wait for all image uploads and DB entries to complete
+      await Promise.all(imagePromises.filter(Boolean));
+    }
     
     return NextResponse.json(storeTip, { status: 201 });
   } catch (error) {
