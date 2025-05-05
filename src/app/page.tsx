@@ -215,17 +215,17 @@ export default function Home() {
         <div className="container mx-auto px-4 text-center relative z-10">
           <div className="max-w-4xl mx-auto">
             <h1 className="text-5xl md:text-7xl font-bold mb-6 animate-fade-in">
-              Connect. Transition. <span className="text-yellow-300">Save.</span>
+              Discover. Map. <span className="text-yellow-300">Save.</span>
             </h1>
             <p className="text-xl md:text-2xl mb-10 animate-slide-up opacity-90">
-              Discover amazing deals at closing stores and be the first to explore exciting new businesses in your area.
+              Find the best discounts at closing stores and exclusive deals at new businesses in your area.
             </p>
             
             {/* Use Next.js Link component properly */}
             <div className="relative z-50 flex justify-center mt-10 gap-4">
               <Link href="/map" passHref>
                 <span className="bg-white text-blue-600 px-4 py-2 rounded-full cursor-pointer block">
-                  🔍 Find Stores
+                  🔍 Find Discounts
                 </span>
               </Link>
               <Link href="/submit" passHref>
@@ -286,20 +286,20 @@ export default function Home() {
                 <ul className="space-y-4">
                   <li className="flex">
                     <span className="bg-green-100 text-green-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">1</span>
-                    <p>Discover stores that are opening or closing in your area</p>
+                    <p>Discover the best discounts near you on our interactive map</p>
                   </li>
                   <li className="flex">
                     <span className="bg-green-100 text-green-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">2</span>
-                    <p>Find discounts at closing stores or special offers at new stores</p>
+                    <p>Find huge savings at closing stores or special offers at new stores</p>
                   </li>
                   <li className="flex">
                     <span className="bg-green-100 text-green-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">3</span>
-                    <p>Get notified about new opportunities in your area</p>
+                    <p>Get notified about new discounts in your area</p>
                   </li>
                 </ul>
                 <div className="mt-8 text-center">
                   <Link href="/map" className="inline-flex items-center px-6 py-3 bg-green-500 text-white rounded-full font-medium hover:bg-green-600 transition shadow-md group-hover:shadow-lg">
-                    Find Stores Now
+                    Find Discounts Now
                     <ArrowRight className="ml-2 transition-transform duration-300 group-hover:translate-x-1" size={18} />
                   </Link>
                 </div>
@@ -317,7 +317,7 @@ export default function Home() {
                 <ul className="space-y-4">
                   <li className="flex">
                     <span className="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">1</span>
-                    <p>List your closing store to reach motivated buyers</p>
+                    <p>List your closing store to reach motivated discount-hunters</p>
                   </li>
                   <li className="flex">
                     <span className="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">2</span>
@@ -348,15 +348,15 @@ export default function Home() {
                 <ul className="space-y-4">
                   <li className="flex">
                     <span className="bg-purple-100 text-purple-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">1</span>
-                    <p>Announce your new store to the community</p>
+                    <p>Announce your new store and special offers on our map</p>
                   </li>
                   <li className="flex">
                     <span className="bg-purple-100 text-purple-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">2</span>
-                    <p>Promote your opening offers and special events</p>
+                    <p>Promote your opening discounts and special events</p>
                   </li>
                   <li className="flex">
                     <span className="bg-purple-100 text-purple-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">3</span>
-                    <p>Connect with customers who are eager to discover new businesses</p>
+                    <p>Connect with customers who are eager to discover new deals</p>
                   </li>
                 </ul>
                 <div className="mt-8 text-center">
@@ -375,9 +375,9 @@ export default function Home() {
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Featured Stores</h2>
+            <h2 className="text-4xl font-bold mb-4">Featured Discounts</h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Discover businesses in transition near you and find amazing opportunities
+              Discover the best savings opportunities near you
             </p>
           </div>
           
@@ -498,7 +498,7 @@ export default function Home() {
           
           <div className="text-center mt-12">
             <Link href="/map" className="bg-indigo-600 text-white px-8 py-4 rounded-full font-medium hover:bg-indigo-700 transition inline-flex items-center shadow-lg hover:shadow-xl transform hover:scale-105">
-              View All Stores
+              View All Discounts
               <ArrowRight size={18} className="ml-2" />
             </Link>
           </div>
@@ -521,9 +521,9 @@ export default function Home() {
         <div className="container mx-auto px-4 relative z-10">
           <div className="flex flex-col md:flex-row items-center">
             <div className="md:w-1/2 mb-10 md:mb-0 md:pr-10">
-              <h2 className="text-4xl font-bold mb-6">Discover Stores Near You</h2>
+              <h2 className="text-4xl font-bold mb-6">Discover Deals Near You</h2>
               <p className="text-gray-300 text-lg mb-8">
-                Our interactive map makes it easy to find transitioning stores in your area. 
+                Our interactive map makes it easy to find the best discounts in your area. 
                 Filter by store type, category, or discount percentage to find exactly what you're looking for.
               </p>
               <div className="space-y-4">
@@ -533,7 +533,7 @@ export default function Home() {
                   </div>
                   <div>
                     <h3 className="font-bold text-xl mb-1">Location-Based Search</h3>
-                    <p className="text-gray-300">Find stores near you or in any location you're interested in.</p>
+                    <p className="text-gray-300">Find discounts near you or in any location you're interested in.</p>
                   </div>
                 </div>
                 <div className="flex items-start">
@@ -551,7 +551,7 @@ export default function Home() {
                   </div>
                   <div>
                     <h3 className="font-bold text-xl mb-1">Real-Time Updates</h3>
-                    <p className="text-gray-300">New stores are added daily. Never miss an opportunity.</p>
+                    <p className="text-gray-300">New deals are added daily. Never miss a discount opportunity.</p>
                   </div>
                 </div>
               </div>
@@ -566,7 +566,7 @@ export default function Home() {
               <div className="rounded-xl overflow-hidden shadow-2xl border-4 border-gray-800 relative transform hover:scale-105 transition-transform duration-300">
                 <img 
                   src="/map-preview.jpeg" 
-                  alt="Store Map Preview" 
+                  alt="Discount Map Preview" 
                   className="w-full h-auto"
                   onError={(e) => {
                     // Fallback for missing image
@@ -624,10 +624,10 @@ export default function Home() {
                 <AlertCircle size={32} className="text-indigo-900" />
               </div>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">Ready to Discover Amazing Opportunities?</h2>
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">Ready to Discover Amazing Discounts?</h2>
             <p className="text-xl mb-10 text-blue-100">
-              Join thousands of shoppers and store owners on Store Transitions today. 
-              Whether you're looking for deals or need to manage a store transition, we've got you covered.
+              Join thousands of shoppers and store owners on DiscountsMap today. 
+              Whether you're hunting for deals or need to advertise your store's discounts, we've got you covered.
             </p>
             <div className="flex flex-col md:flex-row gap-5 justify-center">
               <Link href="/map?type=closing" 
@@ -640,14 +640,14 @@ export default function Home() {
               <Link href="/map?type=opening" 
                 className="group bg-purple-500 text-white px-8 py-4 rounded-full font-medium hover:bg-purple-600 transition shadow-lg transform hover:scale-105">
                 <span className="flex items-center">
-                  Discover New Stores
+                  Discover New Deals
                   <ArrowRight className="ml-2 transition-transform duration-300 group-hover:translate-x-1" size={18} />
                 </span>
               </Link>
             </div>
             
             <div className="mt-12 pt-12 border-t border-blue-400 border-opacity-30">
-              <p className="text-blue-200 mb-4">Create an account to save your favorite stores and get notified of new opportunities</p>
+              <p className="text-blue-200 mb-4">Create an account to save your favorite discounts and get notified of new deals</p>
               <Link href="/register" className="inline-flex items-center px-6 py-3 bg-white text-indigo-700 rounded-full font-medium hover:bg-gray-100 transition shadow-lg">
                 <User size={18} className="mr-2" />
                 Sign Up Now - It's Free
@@ -662,9 +662,9 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-8">
             <div>
-              <h3 className="font-bold text-xl mb-6">Store Transitions</h3>
+              <h3 className="font-bold text-xl mb-6">DiscountsMap</h3>
               <p className="text-gray-400 mb-6">
-                Connecting shoppers with businesses in transition for great opportunities.
+                Connecting shoppers with the best discounts and deals in their area.
               </p>
               <div className="flex space-x-4">
                 <a href="#" className="bg-gray-800 hover:bg-blue-600 w-10 h-10 rounded-full flex items-center justify-center transition-colors">
@@ -682,7 +682,7 @@ export default function Home() {
             <div>
               <h3 className="font-bold text-xl mb-6">Quick Links</h3>
               <ul className="space-y-3">
-                <li><Link href="/map" className="text-gray-400 hover:text-white transition">Find Stores</Link></li>
+                <li><Link href="/map" className="text-gray-400 hover:text-white transition">Find Discounts</Link></li>
                 <li><Link href="/submit" className="text-gray-400 hover:text-white transition">List Your Store</Link></li>
                 <li><Link href="/about" className="text-gray-400 hover:text-white transition">About Us</Link></li>
                 <li><Link href="/contact" className="text-gray-400 hover:text-white transition">Contact Us</Link></li>
@@ -727,7 +727,7 @@ export default function Home() {
           </div>
           
           <div className="border-t border-gray-800 mt-12 pt-6 flex flex-col md:flex-row justify-between items-center text-gray-500">
-            <p>© {new Date().getFullYear()} Store Transitions. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} DiscountsMap. All rights reserved.</p>
             <div className="mt-4 md:mt-0">
               <Link href="/terms" className="hover:text-white transition mr-6">Terms of Service</Link>
               <Link href="/privacy-policy" className="hover:text-white transition">Privacy Policy</Link>

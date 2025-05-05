@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Store Transitions - Find Deals at Closing Stores",
-  description: "Connect with closing stores for great deals while helping businesses transition smoothly",
+  title: "DiscountsMap - Find Deals and Discounts Near You",
+  description: "Discover the best discounts at closing stores and exclusive deals at new businesses in your area",
 };
 
 export default function RootLayout({
@@ -34,7 +34,7 @@ export default function RootLayout({
               <div className="md:flex md:items-center md:justify-between">
                 <div className="mt-8 md:mt-0 md:order-1">
                   <p className="text-center text-sm text-gray-500">
-                    &copy; {new Date().getFullYear()} Store Transitions. All rights reserved.
+                    &copy; {new Date().getFullYear()} DiscountsMap. All rights reserved.
                   </p>
                 </div>
               </div>

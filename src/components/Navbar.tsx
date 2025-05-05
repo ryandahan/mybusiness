@@ -56,7 +56,7 @@ export default function Navbar() {
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <Link href="/" className="text-blue-600 text-xl font-bold">
-                Store Transitions
+                DiscountsMap
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-6">
@@ -64,7 +64,7 @@ export default function Navbar() {
                 href="/map" 
                 className="inline-flex items-center px-1 pt-1 text-gray-900 hover:text-blue-600"
               >
-                Find Stores
+                Find Discounts
               </Link>
               <Link 
                 href="/submit" 
@@ -197,7 +197,7 @@ export default function Navbar() {
               className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800"
               onClick={() => setMenuOpen(false)}
             >
-              Find Stores
+              Find Discounts
             </Link>
             <Link
               href="/submit"

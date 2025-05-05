@@ -12,7 +12,7 @@ export default function About() {
             <ArrowLeft size={16} className="mr-1" />
             Back to home
           </Link>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">About Store Transitions</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">About DiscountsMap</h1>
           <p className="text-xl max-w-3xl">
             Helping shoppers find great deals while supporting businesses during their closing transitions.
           </p>
@@ -25,13 +25,13 @@ export default function About() {
           <div className="max-w-3xl mx-auto">
             <h2 className="text-3xl font-bold mb-6">Our Story</h2>
             <p className="text-lg text-gray-700 mb-4">
-              Store Transitions was founded in 2025 with a simple mission: to create a win-win platform that connects shoppers with businesses that are closing their doors.
+              DiscountsMap was founded in 2025 with a simple mission: to create a win-win platform that connects shoppers with businesses that are closing their doors.
             </p>
             <p className="text-lg text-gray-700 mb-4">
               After witnessing many local stores struggle during their closing phases and seeing how often shoppers missed out on great deals because they didn't know about these sales, we realized there was a need for a dedicated platform to bridge this gap.
             </p>
             <p className="text-lg text-gray-700">
-              Today, Store Transitions helps thousands of shoppers find exceptional deals while assisting business owners in efficiently managing their store closings with dignity and financial success.
+              Today, DiscountsMap helps thousands of shoppers find exceptional deals while assisting business owners in efficiently managing their store closings with dignity and financial success.
             </p>
           </div>
         </div>
