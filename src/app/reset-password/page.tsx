@@ -1,11 +1,12 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, KeyRound } from 'lucide-react';
 
-export default function ResetPassword() {
+// Split component to handle useSearchParams in a separate component
+function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [token, setToken] = useState('');
@@ -61,7 +62,7 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <>
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <Link href="/login" className="flex items-center text-blue-600 hover:text-blue-800 mb-6 mx-auto w-fit">
           <ArrowLeft size={16} className="mr-1" />
@@ -141,6 +142,17 @@ export default function ResetPassword() {
           )}
         </div>
       </div>
+    </>
+  );
+}
+
+// Main component with Suspense
+export default function ResetPassword() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <Suspense fallback={<div className="text-center p-10">Loading...</div>}>
+        <ResetPasswordForm />
+      </Suspense>
     </div>
   );
 }
