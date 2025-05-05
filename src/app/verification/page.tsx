@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle, AlertTriangle, Clock, Shield, Search, File, ExternalLink } from 'lucide-react';
+import { ArrowLeft, CheckCircle, AlertTriangle, Shield } from 'lucide-react';
 
 export default function VerificationPage() {
   return (
@@ -16,7 +16,7 @@ export default function VerificationPage() {
               </Link>
             </div>
             <div className="flex items-center">
-              <Link href="/" className="text-xl font-bold text-gray-800 px-4">Store Transitions</Link>
+              <Link href="/" className="text-xl font-bold text-gray-800 px-4">DiscountsMap</Link>
             </div>
             <div className="w-32"></div> {/* Empty space for balance */}
           </div>
@@ -148,7 +148,7 @@ export default function VerificationPage() {
           <h3 className="text-lg font-medium mb-3">Need Help?</h3>
           <p className="text-gray-600">
             If you have questions about the verification process or need assistance with your submission, 
-            please contact our support team at <a href="mailto:verification@storetransitions.com" className="text-blue-600 hover:underline">verification@storetransitions.com</a>
+            please contact our support team at <a href="mailto:verification@discountsmap.com" className="text-blue-600 hover:underline">verification@discountsmap.com</a>
           </p>
         </div>
       </div>

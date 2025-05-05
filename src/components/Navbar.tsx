@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
-import { Menu, X, User, LogOut, Settings, ChevronDown, Store } from 'lucide-react';
+import { Menu, X, User, LogOut, ChevronDown, Store } from 'lucide-react';
 
 export default function Navbar() {
   const { data: session, status } = useSession();

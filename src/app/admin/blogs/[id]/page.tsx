@@ -4,13 +4,26 @@ import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
-export default function EditBlogPage({ params }: { params: any }) {
-  // Use type assertion to handle the unknown type
-  const id = (React.use(params) as { id: string }).id;
+// Define proper types for the blog post
+interface BlogPost {
+  title: string;
+  slug: string;
+  content: string;
+  imageUrl: string;
+  published: boolean;
+}
+
+// Define proper types for params
+interface Params {
+  id: string;
+}
+
+export default function EditBlogPage({ params }: { params: Params }) {
+  const id = params.id;
   
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<BlogPost>({
     title: '',
     slug: '',
     content: '',
@@ -29,12 +42,11 @@ export default function EditBlogPage({ params }: { params: any }) {
     if (status === 'authenticated' && session?.user?.role === 'admin') {
       fetchBlog();
     }
-  }, [status, session, router]);
+  }, [status, session, router, id]);
 
   const fetchBlog = async () => {
     try {
       setLoading(true);
-      // Use id instead of params.id
       const response = await fetch(`/api/admin/blogs/${id}`);
       if (response.ok) {
         const data = await response.json();
@@ -42,8 +54,9 @@ export default function EditBlogPage({ params }: { params: any }) {
       } else {
         setError('Failed to fetch blog post');
       }
-    } catch (error) {
+    } catch (fetchError) {
       setError('An error occurred');
+      console.error(fetchError);
     } finally {
       setLoading(false);
     }
@@ -75,7 +88,6 @@ export default function EditBlogPage({ params }: { params: any }) {
     setError('');
 
     try {
-      // Use id instead of params.id
       const response = await fetch(`/api/admin/blogs/${id}`, {
         method: 'PUT',
         headers: {
@@ -90,8 +102,9 @@ export default function EditBlogPage({ params }: { params: any }) {
         const data = await response.json();
         setError(data.error || 'Failed to update blog');
       }
-    } catch (err) {
+    } catch (submitError) {
       setError('An error occurred. Please try again.');
+      console.error(submitError);
     } finally {
       setSaving(false);
     }
