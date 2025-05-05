@@ -15,7 +15,10 @@ export async function GET(
     const storeId = resolvedParams.id;
     
     const store = await prisma.store.findUnique({
-      where: { id: storeId }
+      where: { id: storeId },
+      include: {
+        images: true  // Include related images
+      }
     });
     
     if (!store) {
@@ -45,6 +48,9 @@ export async function PUT(
     const storeImage = formData.get('storeImage');
     let storeImageUrl = undefined;
     
+    // Check if main image should be deleted explicitly
+    const deleteMainImage = formData.get('deleteMainImage') === 'true';
+    
     // Process the image if it exists
     if (storeImage instanceof File && storeImage.size > 0) {
       try {
@@ -69,6 +75,44 @@ export async function PUT(
         return NextResponse.json({ error: 'Failed to save image' }, { status: 500 });
       }
     }
+    
+    // Process additional images
+    const additionalImages = formData.getAll('additionalImages');
+    const additionalImageUrls: string[] = [];
+    
+    if (additionalImages && additionalImages.length > 0) {
+      try {
+        // Ensure uploads directory exists
+        const uploadDir = path.join(process.cwd(), 'public/uploads');
+        await mkdir(uploadDir, { recursive: true });
+        
+        for (let i = 0; i < additionalImages.length; i++) {
+          const image = additionalImages[i];
+          
+          if (image instanceof File && image.size > 0) {
+            // Create a unique filename
+            const uniqueFilename = `${Date.now()}-${i}-${image.name.replace(/\s+/g, '-')}`;
+            const filePath = path.join(uploadDir, uniqueFilename);
+            
+            // Convert file to buffer and write to disk
+            const bytes = await image.arrayBuffer();
+            const buffer = Buffer.from(bytes);
+            await writeFile(filePath, buffer);
+            
+            // Add URL to array
+            additionalImageUrls.push(`/uploads/${uniqueFilename}`);
+            console.log(`Additional image saved to: ${filePath}`);
+          }
+        }
+      } catch (error) {
+        console.error('Error saving additional images:', error);
+        return NextResponse.json({ error: 'Failed to save additional images' }, { status: 500 });
+      }
+    }
+    
+    // Get images to delete
+    const imagesToDeleteStr = formData.get('imagesToDelete') as string;
+    const imagesToDelete: string[] = imagesToDeleteStr ? JSON.parse(imagesToDeleteStr) : [];
     
     // Extract data from form
     const updateData: any = {
@@ -108,18 +152,54 @@ export async function PUT(
     // Add image URL if we have one
     if (storeImageUrl) {
       updateData.storeImageUrl = storeImageUrl;
+    } else if (deleteMainImage) {
+      // Explicitly set to null if user wants to delete main image
+      updateData.storeImageUrl = null;
     }
     
     // Handle boolean fields
     updateData.isFeatured = formData.get('isFeatured') === 'true';
     
-    // Update store in database
-    const updatedStore = await prisma.store.update({
-      where: { id: storeId },
-      data: updateData,
+    // Use a transaction to ensure all operations succeed together
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Update the store
+      const updatedStore = await tx.store.update({
+        where: { id: storeId },
+        data: updateData,
+      });
+      
+      // 2. Delete selected images
+      if (imagesToDelete.length > 0) {
+        await tx.storeImage.deleteMany({
+          where: {
+            id: { in: imagesToDelete },
+            storeId: storeId
+          }
+        });
+      }
+      
+      // 3. Add new additional images
+      if (additionalImageUrls.length > 0) {
+        const imageCreatePromises = additionalImageUrls.map(url => 
+          tx.storeImage.create({
+            data: {
+              url: url,
+              storeId: storeId
+            }
+          })
+        );
+        
+        await Promise.all(imageCreatePromises);
+      }
+      
+      // Return the updated store with images
+      return tx.store.findUnique({
+        where: { id: storeId },
+        include: { images: true }
+      });
     });
     
-    return NextResponse.json(updatedStore);
+    return NextResponse.json(result);
   } catch (error: any) {
     console.error('Error updating store:', error);
     

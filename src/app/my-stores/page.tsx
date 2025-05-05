@@ -5,12 +5,18 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Navbar from '@/components/Navbar';
-import { Store, Edit, MapPin, Tag, Home } from 'lucide-react';
+import { Store as StoreIcon, Edit, MapPin, Tag, Home, ChevronLeft, ChevronRight } from 'lucide-react';
+
+interface StoreImage {
+  id: string;
+  url: string;
+}
 
 interface Store {
   id: string;
   businessName: string;
   storeImageUrl?: string;
+  images?: StoreImage[];
   discountPercentage?: number;
   category: string;
   city: string;
@@ -22,6 +28,7 @@ export default function MyStores() {
   const router = useRouter();
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentImageIndexes, setCurrentImageIndexes] = useState<{[key: string]: number}>({});
 
   useEffect(() => {
     // Redirect if not logged in
@@ -40,6 +47,13 @@ export default function MyStores() {
         if (response.ok) {
           const data = await response.json();
           setStores(data);
+          
+          // Initialize the current image index for each store
+          const initialIndexes: {[key: string]: number} = {};
+          data.forEach((store: Store) => {
+            initialIndexes[store.id] = 0;
+          });
+          setCurrentImageIndexes(initialIndexes);
         }
       } catch (error) {
         console.error('Error fetching user stores:', error);
@@ -69,6 +83,63 @@ export default function MyStores() {
     } catch (error) {
       console.error('Error deleting store:', error);
     }
+  };
+
+  // Helper function to get all image URLs for a store
+  const getAllImageUrls = (store: Store): string[] => {
+    const imageUrls: string[] = [];
+    
+    // Add the primary storeImageUrl if it exists
+    if (store.storeImageUrl) {
+      imageUrls.push(store.storeImageUrl);
+    }
+    
+    // Add all images from the images relation
+    if (store.images && Array.isArray(store.images)) {
+      store.images.forEach(image => {
+        if (image.url) {
+          imageUrls.push(image.url);
+        }
+      });
+    }
+    
+    return imageUrls;
+  };
+
+  const nextImage = (storeId: string) => {
+    setCurrentImageIndexes(prev => {
+      const store = stores.find(s => s.id === storeId);
+      if (!store) return prev;
+      
+      const allImages = getAllImageUrls(store);
+      if (allImages.length === 0) return prev;
+      
+      const currentIndex = prev[storeId] || 0;
+      const nextIndex = (currentIndex + 1) % allImages.length;
+      
+      return {
+        ...prev,
+        [storeId]: nextIndex
+      };
+    });
+  };
+
+  const prevImage = (storeId: string) => {
+    setCurrentImageIndexes(prev => {
+      const store = stores.find(s => s.id === storeId);
+      if (!store) return prev;
+      
+      const allImages = getAllImageUrls(store);
+      if (allImages.length === 0) return prev;
+      
+      const currentIndex = prev[storeId] || 0;
+      const prevIndex = (currentIndex - 1 + allImages.length) % allImages.length;
+      
+      return {
+        ...prev,
+        [storeId]: prevIndex
+      };
+    });
   };
 
   if (status === 'loading' || loading) {
@@ -102,7 +173,7 @@ export default function MyStores() {
               href="/submit" 
               className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
             >
-              <Store size={16} className="mr-2" />
+              <StoreIcon size={16} className="mr-2" />
               Add New Store
             </Link>
           </div>
@@ -113,17 +184,59 @@ export default function MyStores() {
             {stores.map((store) => (
               <div key={store.id} className="bg-white rounded-lg shadow-md overflow-hidden">
                 <div className="relative h-48 bg-gray-200">
-                  {store.storeImageUrl ? (
-                    <img 
-                      src={store.storeImageUrl} 
-                      alt={store.businessName} 
-                      className="w-full h-full object-cover" 
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Store size={48} className="text-gray-400" />
-                    </div>
-                  )}
+                  {(() => {
+                    const allImageUrls = getAllImageUrls(store);
+                    const currentIndex = currentImageIndexes[store.id] || 0;
+                    
+                    if (allImageUrls.length > 0) {
+                      return (
+                        <>
+                          <img 
+                            src={allImageUrls[currentIndex]} 
+                            alt={`${store.businessName} - Image ${currentIndex + 1}`} 
+                            className="w-full h-full object-cover" 
+                          />
+                          
+                          {/* Only show navigation if there are multiple images */}
+                          {allImageUrls.length > 1 && (
+                            <>
+                              <button 
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  prevImage(store.id);
+                                }}
+                                className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-1 rounded-full"
+                              >
+                                <ChevronLeft size={20} />
+                              </button>
+                              
+                              <button 
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  nextImage(store.id);
+                                }}
+                                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-1 rounded-full"
+                              >
+                                <ChevronRight size={20} />
+                              </button>
+                              
+                              <div className="absolute bottom-2 left-0 right-0 flex justify-center">
+                                <div className="bg-black bg-opacity-50 rounded-full px-3 py-1 text-xs text-white">
+                                  {currentIndex + 1} / {allImageUrls.length}
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </>
+                      );
+                    } else {
+                      return (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <StoreIcon size={48} className="text-gray-400" />
+                        </div>
+                      );
+                    }
+                  })()}
                   <div className="absolute top-3 right-3 bg-red-500 text-white px-3 py-1 rounded-full font-bold">
                     {store.discountPercentage || 0}%
                   </div>
@@ -176,7 +289,7 @@ export default function MyStores() {
               href="/submit" 
               className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
             >
-              <Store size={16} className="mr-2" />
+              <StoreIcon size={16} className="mr-2" />
               List a Store
             </Link>
           </div>

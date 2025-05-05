@@ -17,6 +17,9 @@ export async function GET() {
     
     const stores = await prisma.store.findMany({
       where: { userId: userId },
+      include: {
+        images: true // Include related images
+      },
       orderBy: { createdAt: 'desc' }
     });
     

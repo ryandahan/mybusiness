@@ -4,7 +4,12 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import Navbar from '@/components/Navbar';
-import { MapPin, Calendar, Tag, Phone, Mail, Edit } from 'lucide-react';
+import { MapPin, Calendar, Tag, Phone, Mail, Edit, ChevronLeft, ChevronRight } from 'lucide-react';
+
+interface StoreImage {
+  id: string;
+  url: string;
+}
 
 interface Store {
   id: string;
@@ -24,8 +29,8 @@ interface Store {
   inventoryDescription: string;
   reasonForClosing?: string;
   storeImageUrl?: string | null;
-  storeImages?: string[]; // Added support for multiple images
-  userId?: string; // Added to check ownership
+  images?: StoreImage[]; 
+  userId?: string;
 }
 
 export function StoreDetailContent({ id }: { id: string }) {
@@ -33,6 +38,7 @@ export function StoreDetailContent({ id }: { id: string }) {
   const [store, setStore] = useState<Store | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     const fetchStore = async () => {
@@ -56,6 +62,43 @@ export function StoreDetailContent({ id }: { id: string }) {
 
   // Check if user is admin or store owner
   const isAdminOrOwner = session?.user?.role === 'admin' || session?.user?.id === store?.userId;
+
+  // Image carousel functions
+  const getAllImages = (store: Store | null): string[] => {
+    if (!store) return [];
+    
+    const images: string[] = [];
+    
+    if (store.storeImageUrl) {
+      images.push(store.storeImageUrl);
+    }
+    
+    if (store.images && Array.isArray(store.images)) {
+      store.images.forEach(image => {
+        if (image.url) {
+          images.push(image.url);
+        }
+      });
+    }
+    
+    return images;
+  };
+
+  const allImages = store ? getAllImages(store) : [];
+  const totalImages = allImages.length;
+  const currentImage = allImages[currentIndex] || '';
+
+  const nextImage = () => {
+    if (totalImages > 1) {
+      setCurrentIndex((currentIndex + 1) % totalImages);
+    }
+  };
+
+  const prevImage = () => {
+    if (totalImages > 1) {
+      setCurrentIndex((currentIndex - 1 + totalImages) % totalImages);
+    }
+  };
 
   if (loading) return (
     <main className="flex min-h-screen flex-col">
@@ -90,18 +133,35 @@ export function StoreDetailContent({ id }: { id: string }) {
         </Link>
         
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          {/* Display multiple images if available, otherwise fallback to single image */}
-          {store.storeImages && store.storeImages.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-              {store.storeImages.map((imageUrl, index) => (
-                <div key={index} className="h-64 overflow-hidden rounded">
-                  <img src={imageUrl} alt={`${store.businessName} - ${index + 1}`} className="w-full h-full object-cover" />
-                </div>
-              ))}
-            </div>
-          ) : store.storeImageUrl ? (
-            <div className="h-64 overflow-hidden">
-              <img src={store.storeImageUrl} alt={store.businessName} className="w-full h-full object-cover" />
+          {/* Image Gallery/Carousel */}
+          {totalImages > 0 ? (
+            <div className="h-64 relative overflow-hidden">
+              <img 
+                src={currentImage} 
+                alt={store.businessName} 
+                className="w-full h-full object-cover" 
+              />
+              {totalImages > 1 && (
+                <>
+                  <button 
+                    onClick={prevImage}
+                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-1 rounded-full"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button 
+                    onClick={nextImage}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-1 rounded-full"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                  <div className="absolute bottom-2 left-0 right-0 flex justify-center">
+                    <div className="bg-black bg-opacity-50 rounded-full px-3 py-1 text-xs text-white">
+                      {currentIndex + 1} / {totalImages}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           ) : null}
           

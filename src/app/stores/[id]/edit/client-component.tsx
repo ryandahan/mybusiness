@@ -3,8 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Calendar, MapPin, Building, Tag, Phone, Mail, ArrowLeft } from 'lucide-react';
+import { Calendar, MapPin, Building, Tag, Phone, Mail, ArrowLeft, X } from 'lucide-react';
 import heic2any from 'heic2any';
+
+interface StoreImage {
+  id: string;
+  url: string;
+}
 
 interface StoreData {
   id: string;
@@ -26,6 +31,7 @@ interface StoreData {
   ownerName: string;
   contactPreference: 'email' | 'phone';
   storeImageUrl: string | null;
+  images: StoreImage[];
   isFeatured: boolean;
 }
 
@@ -36,8 +42,12 @@ export default function EditStoreClient({ id }: { id: string }) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [storeData, setStoreData] = useState<StoreData | null>(null);
-  const [storeImage, setStoreImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  
+  // Updated state for multiple images
+  const [additionalImages, setAdditionalImages] = useState<File[]>([]);
+  const [additionalImagePreviews, setAdditionalImagePreviews] = useState<string[]>([]);
+  const [imagesToDelete, setImagesToDelete] = useState<string[]>([]);
+  const [deleteMainImage, setDeleteMainImage] = useState<boolean>(false);
 
   // Fetch store data
   useEffect(() => {
@@ -51,6 +61,8 @@ export default function EditStoreClient({ id }: { id: string }) {
         }
         
         const data = await res.json();
+        console.log("Store API response:", data);
+        console.log("Images from API:", data.images);
         
         // Ensure all string fields have default values
         const formattedData = {
@@ -72,14 +84,11 @@ export default function EditStoreClient({ id }: { id: string }) {
           reasonForTransition: data.reasonForTransition || '',
           ownerName: data.ownerName || '',
           contactPreference: data.contactPreference || 'email',
+          images: data.images || [],
           isFeatured: !!data.isFeatured
         };
         
         setStoreData(formattedData);
-        
-        if (data.storeImageUrl) {
-          setImagePreview(data.storeImageUrl);
-        }
       } catch (err) {
         console.error('Error fetching store:', err);
         setError('Could not load store data. Please try again.');
@@ -133,28 +142,51 @@ export default function EditStoreClient({ id }: { id: string }) {
     return file;
   };
 
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) {
-      setStoreImage(null);
-      setImagePreview(storeData?.storeImageUrl || null);
-      return;
-    }
+  // Handle additional images
+  const handleAdditionalImagesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
     
     try {
-      const file = e.target.files[0];
-      const processedFile = await processImageFile(file);
-      setStoreImage(processedFile);
+      const fileArray = Array.from(e.target.files);
+      const processedFiles: File[] = [];
+      const previewUrls: string[] = [];
       
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(processedFile);
+      for (const file of fileArray) {
+        const processedFile = await processImageFile(file);
+        processedFiles.push(processedFile);
+        
+        // Create preview for each file
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          previewUrls.push(reader.result as string);
+          if (previewUrls.length === fileArray.length) {
+            setAdditionalImagePreviews([...additionalImagePreviews, ...previewUrls]);
+          }
+        };
+        reader.readAsDataURL(processedFile);
+      }
+      
+      setAdditionalImages([...additionalImages, ...processedFiles]);
     } catch (error) {
-      console.error('Error processing image:', error);
-      setError('Error processing image. Please try a different file.');
+      console.error('Error processing additional images:', error);
+      setError('Error processing one or more images. Please try different files.');
     }
+  };
+
+  // Remove an additional image that hasn't been uploaded yet
+  const removeAdditionalImage = (index: number) => {
+    setAdditionalImages(additionalImages.filter((_, i) => i !== index));
+    setAdditionalImagePreviews(additionalImagePreviews.filter((_, i) => i !== index));
+  };
+
+  // Mark an existing image for deletion
+  const markImageForDeletion = (imageId: string) => {
+    setImagesToDelete([...imagesToDelete, imageId]);
+  };
+
+  // Restore a previously marked image
+  const restoreImage = (imageId: string) => {
+    setImagesToDelete(imagesToDelete.filter(id => id !== imageId));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -170,14 +202,22 @@ export default function EditStoreClient({ id }: { id: string }) {
       
       // Append all store data
       Object.entries(storeData).forEach(([key, value]) => {
-        if (value !== null && value !== undefined) {
+        if (value !== null && value !== undefined && key !== 'images') {
           formData.append(key, value.toString());
         }
       });
       
-      // Append the new image if provided
-      if (storeImage) {
-        formData.append('storeImage', storeImage);
+      // Add flag to delete main image
+      formData.append('deleteMainImage', deleteMainImage.toString());
+      
+      // Append all images
+      additionalImages.forEach((file) => {
+        formData.append('additionalImages', file);
+      });
+      
+      // Append image IDs to delete
+      if (imagesToDelete.length > 0) {
+        formData.append('imagesToDelete', JSON.stringify(imagesToDelete));
       }
       
       const response = await fetch(`/api/stores/${id}`, {
@@ -551,27 +591,124 @@ export default function EditStoreClient({ id }: { id: string }) {
           </select>
         </div>
         
+        {/* All store images in one section */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Store Image
+            Store Images
           </label>
           
-          {imagePreview && (
-            <div className="mb-2">
-              <img 
-                src={imagePreview} 
-                alt="Store preview" 
-                className="w-32 h-32 object-cover rounded border"
-              />
+          {/* All existing images (main + additional) */}
+          {((storeData.images && storeData.images.length > 0) || storeData.storeImageUrl) && (
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-2">Current Images:</p>
+              <div className="flex flex-wrap gap-2">
+                {/* Show main image first if it exists */}
+                {storeData.storeImageUrl && (
+                  <div className="relative group w-32 h-32 border rounded overflow-hidden">
+                    <img 
+                      src={storeData.storeImageUrl} 
+                      alt="Main Store" 
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDeleteMainImage(true);
+                          setStoreData({
+                            ...storeData,
+                            storeImageUrl: null
+                          });
+                        }}
+                        className="bg-red-600 text-white p-1 rounded-full"
+                        title="Remove image"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Show all related images */}
+                {storeData.images && storeData.images.map(image => {
+                  const isMarkedForDeletion = imagesToDelete.includes(image.id);
+                  
+                  return (
+                    <div 
+                      key={image.id} 
+                      className={`relative group w-32 h-32 border rounded overflow-hidden ${
+                        isMarkedForDeletion ? 'opacity-50' : ''
+                      }`}
+                    >
+                      <img 
+                        src={image.url} 
+                        alt="Store" 
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center">
+                        {isMarkedForDeletion ? (
+                          <button
+                            type="button"
+                            onClick={() => restoreImage(image.id)}
+                            className="bg-green-600 text-white p-1 rounded-full"
+                            title="Restore image"
+                          >
+                            Restore
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => markImageForDeletion(image.id)}
+                            className="bg-red-600 text-white p-1 rounded-full"
+                            title="Remove image"
+                          >
+                            <X size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
           
+          {/* New images to be uploaded */}
+          {additionalImagePreviews.length > 0 && (
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-2">New Images to Upload:</p>
+              <div className="flex flex-wrap gap-2">
+                {additionalImagePreviews.map((preview, index) => (
+                  <div key={index} className="relative group w-32 h-32 border rounded overflow-hidden">
+                    <img 
+                      src={preview} 
+                      alt={`Preview ${index + 1}`} 
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center">
+                      <button
+                        type="button"
+                        onClick={() => removeAdditionalImage(index)}
+                        className="bg-red-600 text-white p-1 rounded-full"
+                        title="Remove image"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Upload input for all images */}
           <input
             type="file"
-            id="storeImage"
-            name="storeImage"
-            onChange={handleImageChange}
+            id="additionalImages"
+            name="additionalImages"
+            onChange={handleAdditionalImagesChange}
             accept="image/jpeg,image/png,image/gif,image/webp,.heic,.HEIC"
+            multiple
             className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
           />
           <p className="text-xs text-gray-500 mt-1">
