@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
+import React, { useState, useEffect, ChangeEvent, FormEvent, Suspense } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -57,7 +57,7 @@ interface GuestTipData {
   promotionEndDate: string;
 }
 
-export default function SubmitPage() {
+function SubmitPageContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1639,5 +1639,21 @@ export default function SubmitPage() {
         )}
       </form>
     </div>
+  );
+}
+export default function SubmitPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
+        <div className="text-center py-8">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-1/2 mx-auto mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+          </div>
+        </div>
+      </div>
+    }>
+      <SubmitPageContent />
+    </Suspense>
   );
 }
