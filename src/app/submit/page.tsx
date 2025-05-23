@@ -4,8 +4,16 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Calendar, Clock, MapPin, Building, Tag, Image, Phone, Mail, Info, Check, User, Store, PlusCircle, ArrowLeft, X } from 'lucide-react';
-import heic2any from 'heic2any';
+// Remove the direct import: import heic2any from 'heic2any';
 import { geocodeAddressComponents } from '@/lib/geocoding';
+
+// Add heic2any as a dynamic import
+let heic2any: any = null;
+if (typeof window !== 'undefined') {
+  import('heic2any').then((module) => {
+    heic2any = module.default;
+  });
+}
 
 interface FormData {
   businessName: string;
@@ -26,8 +34,8 @@ interface FormData {
   reasonForTransition: string;
   ownerName: string;
   contactPreference: 'email' | 'phone';
-  storeImage: File | null;  // Keep for backward compatibility
-  storeImages: File[];      // New field for multiple images
+  storeImage: File | null;
+  storeImages: File[];
   verificationDocuments: File | null;
   agreedToTerms: boolean;
 }
@@ -39,8 +47,8 @@ interface GuestTipData {
   city: string;
   state: string;
   zipCode: string;
-  storeImage: File | null;  // Keep for backward compatibility
-  storeImages: File[];      // New field for multiple images
+  storeImage: File | null;
+  storeImages: File[];
   submitterEmail: string;
   discountPercentage: string;
   storeType: 'opening' | 'closing';
@@ -138,7 +146,6 @@ export default function SubmitPage() {
       [name]: value
     });
     
-    // Clear address warning when any address field is modified
     if (['address', 'city', 'state', 'zipCode'].includes(name)) {
       setAddressWarning(null);
     }
@@ -164,6 +171,12 @@ export default function SubmitPage() {
   const processImageFile = async (file: File): Promise<File> => {
     if (file && (file.name.toLowerCase().endsWith('.heic') || file.type === 'image/heic')) {
       try {
+        if (!heic2any) {
+          // If heic2any isn't loaded yet, wait for it
+          const module = await import('heic2any');
+          heic2any = module.default;
+        }
+        
         const convertedBlob = await heic2any({
           blob: file,
           toType: 'image/jpeg',
@@ -202,7 +215,6 @@ export default function SubmitPage() {
     
     try {
       if (name === 'storeImages') {
-        // Handle multiple files
         const processedFiles: File[] = [];
         
         for (let i = 0; i < files.length; i++) {
@@ -215,14 +227,12 @@ export default function SubmitPage() {
           storeImages: processedFiles
         });
       } else if (name === 'storeImage') {
-        // For backward compatibility - single file upload
         const file = await processImageFile(files[0]);
         setFormData({
           ...formData,
           [name]: file
         });
       } else {
-        // For other files like verification documents
         setFormData({
           ...formData,
           [name]: files[0]
@@ -253,7 +263,6 @@ export default function SubmitPage() {
     
     try {
       if (name === 'storeImages') {
-        // Handle multiple files
         const processedFiles: File[] = [];
         
         for (let i = 0; i < files.length; i++) {
@@ -266,7 +275,6 @@ export default function SubmitPage() {
           storeImages: processedFiles
         });
       } else if (name === 'storeImage') {
-        // For backward compatibility - single file upload
         const file = await processImageFile(files[0]);
         setGuestTipData({
           ...guestTipData,
@@ -306,7 +314,6 @@ export default function SubmitPage() {
     });
   };
   
-  // Remove an image from the storeImages array
   const removeImage = (index: number) => {
     setFormData({
       ...formData,
@@ -314,7 +321,6 @@ export default function SubmitPage() {
     });
   };
   
-  // Remove a guest image from the storeImages array
   const removeGuestImage = (index: number) => {
     setGuestTipData({
       ...guestTipData,
@@ -362,12 +368,10 @@ export default function SubmitPage() {
       submitData.append('ownerName', formData.ownerName);
       submitData.append('contactPreference', formData.contactPreference);
       
-      // Add multiple images to the form data
       formData.storeImages.forEach((file, index) => {
         submitData.append('storeImages', file);
       });
       
-      // Also append the single image for backward compatibility
       if (formData.storeImage) {
         submitData.append('storeImage', formData.storeImage);
       }
@@ -376,7 +380,6 @@ export default function SubmitPage() {
         submitData.append('verificationDocuments', formData.verificationDocuments);
       }
       
-      // Geocode the address
       try {
         const geocodeResult = await geocodeAddressComponents(
           formData.address,
@@ -385,19 +388,16 @@ export default function SubmitPage() {
           formData.zipCode
         );
         
-        // Add geocoding results to the form data
         submitData.append('latitude', geocodeResult.latitude.toString());
         submitData.append('longitude', geocodeResult.longitude.toString());
         submitData.append('isDefaultLocation', geocodeResult.isDefaultLocation.toString());
         
-        // If using default location, add a warning but still proceed
         if (geocodeResult.isDefaultLocation) {
           setAddressWarning("We couldn't verify this address on the map. Your store will be listed but may not appear at the correct location.");
           console.warn("Using default location for store, address could not be geocoded");
         }
       } catch (error) {
         console.error('Error geocoding address:', error);
-        // Continue with submission but with default coordinates
         submitData.append('latitude', '40.7128');
         submitData.append('longitude', '-74.0060');
         submitData.append('isDefaultLocation', 'true');
@@ -460,27 +460,22 @@ export default function SubmitPage() {
       } else {
         submitData.append('openingDate', guestTipData.openingDate);
         submitData.append('specialOffers', guestTipData.specialOffers);
-        // Add discount percentage for opening stores
         if (guestTipData.discountPercentage) {
           submitData.append('discountPercentage', guestTipData.discountPercentage);
         }
-        // Add promotion end date if provided
         if (guestTipData.promotionEndDate) {
           submitData.append('promotionEndDate', guestTipData.promotionEndDate);
         }
       }
       
-      // Add multiple images to the form data
       guestTipData.storeImages.forEach((file, index) => {
         submitData.append('storeImages', file);
       });
       
-      // Also append the single image for backward compatibility
       if (guestTipData.storeImage) {
         submitData.append('storeImage', guestTipData.storeImage);
       }
       
-      // Geocode the address
       try {
         const geocodeResult = await geocodeAddressComponents(
           guestTipData.address,
@@ -489,19 +484,16 @@ export default function SubmitPage() {
           guestTipData.zipCode
         );
         
-        // Add geocoding results to the form data
         submitData.append('latitude', geocodeResult.latitude.toString());
         submitData.append('longitude', geocodeResult.longitude.toString());
         submitData.append('isDefaultLocation', geocodeResult.isDefaultLocation.toString());
         
-        // If using default location, add a warning but still proceed
         if (geocodeResult.isDefaultLocation) {
           setAddressWarning("We couldn't verify this address on the map. The store tip will be submitted but may not appear at the correct location.");
           console.warn("Using default location for store tip, address could not be geocoded");
         }
       } catch (error) {
         console.error('Error geocoding address:', error);
-        // Continue with submission but with default coordinates
         submitData.append('latitude', '40.7128');
         submitData.append('longitude', '-74.0060');
         submitData.append('isDefaultLocation', 'true');
@@ -534,7 +526,6 @@ export default function SubmitPage() {
   const nextStep = () => setFormStep(formStep + 1);
   const prevStep = () => setFormStep(formStep - 1);
   
-  // Back button that's visible across all views
   const BackToHomeButton = () => (
     <Link href="/" className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4">
       <ArrowLeft size={16} className="mr-1" />
@@ -745,7 +736,6 @@ export default function SubmitPage() {
           </div>
         )}
         
-        {/* Store Type Selection */}
         <div className="mb-6">
           <p className="text-md font-medium text-gray-700 mb-3">What type of store are you reporting?</p>
           <div className="flex space-x-4">
@@ -1021,11 +1011,10 @@ export default function SubmitPage() {
       onChange={handleGuestFileChange}
       accept="image/jpeg,image/png,image/gif,image/webp,.heic,.HEIC"
       className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-      multiple  // Enable multiple file selection
+      multiple
     />
     <p className="text-xs text-gray-500 mt-1">You can select multiple images. Supported formats: JPEG, PNG, GIF, WEBP, HEIC (iPhone photos)</p>
     
-    {/* Preview of selected images */}
     {guestTipData.storeImages.length > 0 && (
       <div className="mt-3">
         <p className="text-sm font-medium text-gray-700 mb-2">Selected Images:</p>
@@ -1095,7 +1084,6 @@ export default function SubmitPage() {
         </div>
       )}
       
-      {/* Store Type Selection */}
       <div className="mb-6">
         <p className="text-md font-medium text-gray-700 mb-3">What type of store are you submitting?</p>
         <div className="flex space-x-4">
@@ -1563,11 +1551,10 @@ export default function SubmitPage() {
                 onChange={handleFileChange}
                 accept="image/jpeg,image/png,image/gif,image/webp,.heic,.HEIC"
                 className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                multiple  // Enable multiple file selection
+                multiple
               />
               <p className="text-xs text-gray-500 mt-1">You can select multiple images. Supported formats: JPEG, PNG, GIF, WEBP, HEIC (iPhone photos)</p>
               
-              {/* Preview of selected images */}
               {formData.storeImages.length > 0 && (
                 <div className="mt-3">
                   <p className="text-sm font-medium text-gray-700 mb-2">Selected Images:</p>
