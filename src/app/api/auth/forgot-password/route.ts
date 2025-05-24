@@ -10,13 +10,18 @@ function generateToken() {
   return crypto.randomBytes(32).toString('hex');
 }
 
-// Set up email transporter
+// Set up email transporter - FIXED TO USE DOMAIN SMTP INSTEAD OF GMAIL
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: process.env.SMTP_HOST || 'smtp.office365.com', // Your domain's SMTP server
+  port: parseInt(process.env.SMTP_PORT || '587'),
+  secure: false, // true for 465, false for other ports like 587
   auth: {
-    user: process.env.EMAIL_USERNAME,
-    pass: process.env.EMAIL_PASSWORD,
+    user: process.env.SMTP_USER,     // raeean@discountsmap.com
+    pass: process.env.SMTP_PASS      // Ryandahan7$
   },
+  tls: {
+    ciphers: 'SSLv3'
+  }
 });
 
 export async function POST(request: Request) {
@@ -49,9 +54,9 @@ export async function POST(request: Request) {
     // Create reset link
     const resetLink = `${process.env.NEXTAUTH_URL}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
 
-    // Send email with magic link
+    // Send email with magic link - NOW SENDS FROM YOUR DOMAIN
     await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
+      from: process.env.EMAIL_FROM || 'noreply@discountsmap.com', // ✅ Your domain alias
       to: email,
       subject: 'Reset Your Password',
       html: `
