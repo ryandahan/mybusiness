@@ -46,7 +46,7 @@ export async function getGeocode(address: string): Promise<GeocodeResult> {
         addressdetails: 1
       },
       headers: {
-        'User-Agent': 'Store Transitions App' // Required by Nominatim's terms
+        'User-Agent': 'DiscountsMaps App' // Required by Nominatim's terms
       }
     });
     

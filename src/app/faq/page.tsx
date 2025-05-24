@@ -12,11 +12,11 @@ export default function FAQPage() {
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
             <details className="group">
               <summary className="flex justify-between items-center p-6 cursor-pointer">
-                <h3 className="text-lg font-medium">How does Store Transitions work?</h3>
+                <h3 className="text-lg font-medium">How does DiscountsMaps work?</h3>
                 <ChevronDown className="transition-transform group-open:rotate-180" />
               </summary>
               <div className="px-6 pb-6 text-gray-600">
-                <p>Store Transitions connects shoppers with businesses that are closing. Store owners list their closing stores with details like location, closing dates, and discount information. Shoppers can search and filter stores based on their preferences.</p>
+                <p>DiscountsMaps connects shoppers with businesses that are closing. Store owners list their closing stores with details like location, closing dates, and discount information. Shoppers can search and filter stores based on their preferences.</p>
               </div>
             </details>
           </div>

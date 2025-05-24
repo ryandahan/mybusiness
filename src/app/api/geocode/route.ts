@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`,
       {
         headers: {
-          'User-Agent': 'Store Transitions App'
+          'User-Agent': 'DiscountsMaps App'
         }
       }
     );

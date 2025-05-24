@@ -87,7 +87,7 @@ export default function Contact() {
           </Link>
           <h1 className="text-4xl font-bold mb-4">Contact Us</h1>
           <p className="text-xl max-w-3xl">
-            We're here to help. Reach out with questions or feedback about Store Transitions.
+            We're here to help. Reach out with questions or feedback about DiscountsMaps.
           </p>
         </div>
       </div>
@@ -264,9 +264,9 @@ export default function Contact() {
               
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="bg-white p-6 rounded-lg shadow-md">
-                  <h3 className="text-lg font-bold mb-2">How does Store Transitions work?</h3>
+                  <h3 className="text-lg font-bold mb-2">How does DiscountsMaps work?</h3>
                   <p className="text-gray-700">
-                    Store Transitions connects shoppers with businesses that are closing. 
+                    DiscountsMaps connects shoppers with businesses that are closing. 
                     Store owners list their closing stores with details like location, closing dates, 
                     and discount information. Shoppers can search and filter stores based on their preferences.
                   </p>

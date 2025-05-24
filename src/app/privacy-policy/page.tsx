@@ -27,7 +27,7 @@ export default function PrivacyPolicy() {
           <div className="bg-white p-8 rounded-lg shadow-sm mb-8">
             <h2 className="text-2xl font-bold mb-4">Introduction</h2>
             <p className="mb-4">
-              At Store Transitions, we respect your privacy and are committed to protecting your personal data. 
+              At DiscountsMaps, we respect your privacy and are committed to protecting your personal data. 
               This privacy policy explains how we collect, use, and safeguard your information when you use our 
               website and services.
             </p>
@@ -203,7 +203,7 @@ export default function PrivacyPolicy() {
       <footer className="bg-gray-100 py-8 mt-auto">
         <div className="container mx-auto px-4">
           <div className="border-t border-gray-200 mt-8 pt-6 text-center text-gray-500">
-            <p>© {new Date().getFullYear()} Store Transitions. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} DiscountsMaps. All rights reserved.</p>
           </div>
         </div>
       </footer>
