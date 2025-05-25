@@ -1,25 +1,29 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
-import { Filter, Tag, Calendar, MapPin, Search } from 'lucide-react';
+import { Filter, Tag, Calendar, MapPin, Search, Globe, Store, Building } from 'lucide-react';
 
-// Define the props type with searchQuery added
+// Define the enhanced props type with online store support
 interface FilterPanelProps {
   filters: {
-    storeType: 'closing' | 'opening' | 'all';
+    storeType: 'closing' | 'opening' | 'online' | 'all';  // Added 'online'
     category: string;
     minDiscount: number;
     maxDistance: number;
     closingBefore: string;
     searchQuery: string;
+    isOnlineStore?: boolean;  // New: filter by online store status
+    hasPhysicalLocation?: boolean;  // New: filter by physical location presence
   };
   setFilters: React.Dispatch<React.SetStateAction<{
-    storeType: 'closing' | 'opening' | 'all';
+    storeType: 'closing' | 'opening' | 'online' | 'all';
     category: string;
     minDiscount: number;
     maxDistance: number;
     closingBefore: string;
     searchQuery: string;
+    isOnlineStore?: boolean;
+    hasPhysicalLocation?: boolean;
   }>>;
 }
 
@@ -87,6 +91,32 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, setFilters }) => {
     }));
   };
 
+  // Handle store location type change
+  const handleLocationTypeChange = (locationType: 'all' | 'physical' | 'online') => {
+    setFilters(prev => ({
+      ...prev,
+      isOnlineStore: locationType === 'online' ? true : locationType === 'physical' ? false : undefined,
+      hasPhysicalLocation: locationType === 'physical' ? true : locationType === 'online' ? false : undefined
+    }));
+  };
+
+  // Determine current location type selection
+  const getCurrentLocationType = () => {
+    if (filters.isOnlineStore === true) return 'online';
+    if (filters.isOnlineStore === false || filters.hasPhysicalLocation === true) return 'physical';
+    return 'all';
+  };
+
+  // Check if we should show distance filter (only for physical stores)
+  const shouldShowDistanceFilter = () => {
+    return filters.storeType !== 'online' && filters.isOnlineStore !== true;
+  };
+
+  // Check if we should show discount filter
+  const shouldShowDiscountFilter = () => {
+    return (filters.storeType === 'closing' || filters.storeType === 'all' || filters.storeType === 'online');
+  };
+
   return (
     <div className="bg-white p-4 rounded-lg shadow-md">
       <div className="flex items-center mb-4">
@@ -109,7 +139,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, setFilters }) => {
                 value={localSearchQuery}
                 onChange={(e) => setLocalSearchQuery(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
-                placeholder="Search stores, categories, items..."
+                placeholder="Search stores, websites, categories..."
                 className="flex-1 p-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
               />
               <button
@@ -127,6 +157,60 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, setFilters }) => {
             )}
           </div>
         )}
+
+        {/* Store Location Type Filter - NEW */}
+        <div>
+          <label className="flex items-center mb-2 text-sm font-medium">
+            <Building size={16} className="mr-2 text-gray-500" />
+            Store Location Type
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => handleLocationTypeChange('all')}
+              className={`p-2 text-xs rounded-md border transition-colors ${
+                getCurrentLocationType() === 'all'
+                  ? 'bg-blue-100 border-blue-500 text-blue-700'
+                  : 'bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <div className="flex flex-col items-center gap-1">
+                <Filter size={14} />
+                <span>All Stores</span>
+              </div>
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => handleLocationTypeChange('physical')}
+              className={`p-2 text-xs rounded-md border transition-colors ${
+                getCurrentLocationType() === 'physical'
+                  ? 'bg-green-100 border-green-500 text-green-700'
+                  : 'bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <div className="flex flex-col items-center gap-1">
+                <Store size={14} />
+                <span>Physical</span>
+              </div>
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => handleLocationTypeChange('online')}
+              className={`p-2 text-xs rounded-md border transition-colors ${
+                getCurrentLocationType() === 'online'
+                  ? 'bg-purple-100 border-purple-500 text-purple-700'
+                  : 'bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <div className="flex flex-col items-center gap-1">
+                <Globe size={14} />
+                <span>Online</span>
+              </div>
+            </button>
+          </div>
+        </div>
 
         {/* Category filter */}
         <div>
@@ -149,8 +233,8 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, setFilters }) => {
           </select>
         </div>
         
-        {/* Discount filter - only show for closing stores or all stores */}
-        {(filters.storeType === 'closing' || filters.storeType === 'all') && (
+        {/* Discount filter - show for closing stores, all stores, or online stores */}
+        {shouldShowDiscountFilter() && (
           <div>
             <label className="flex items-center mb-2 text-sm font-medium">
               <Tag size={16} className="mr-2 text-gray-500" />
@@ -169,48 +253,58 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, setFilters }) => {
               />
               <span className="ml-2 text-blue-600 font-medium">{filters.minDiscount}%</span>
             </div>
+            <div className="text-xs text-gray-500 mt-1">
+              {filters.storeType === 'online' ? 'Current promotions' : 'Closing sale discounts'}
+            </div>
           </div>
         )}
         
-        {/* Distance filter */}
-        <div>
-          <label className="flex items-center mb-2 text-sm font-medium">
-            <MapPin size={16} className="mr-2 text-gray-500" />
-            Maximum Distance
-          </label>
-          <div className="flex items-center">
-            <input
-              type="range"
-              name="maxDistance"
-              min="10"
-              max="500"
-              step="10"
-              value={filters.maxDistance}
-              onChange={handleChange}
-              className="w-full"
-            />
-            <span className="ml-2 text-blue-600 font-medium">{filters.maxDistance} mi</span>
+        {/* Distance filter - only show for physical stores */}
+        {shouldShowDistanceFilter() && (
+          <div>
+            <label className="flex items-center mb-2 text-sm font-medium">
+              <MapPin size={16} className="mr-2 text-gray-500" />
+              Maximum Distance
+            </label>
+            <div className="flex items-center">
+              <input
+                type="range"
+                name="maxDistance"
+                min="10"
+                max="500"
+                step="10"
+                value={filters.maxDistance}
+                onChange={handleChange}
+                className="w-full"
+              />
+              <span className="ml-2 text-blue-600 font-medium">{filters.maxDistance} mi</span>
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              From your location (physical stores only)
+            </div>
           </div>
-        </div>
+        )}
         
         {/* Date filter - dynamically change label based on store type */}
-        <div>
-          <label className="flex items-center mb-2 text-sm font-medium">
-            <Calendar size={16} className="mr-2 text-gray-500" />
-            {filters.storeType === 'opening' 
-              ? 'Opening Before' 
-              : filters.storeType === 'closing'
-                ? 'Closing Before'
-                : 'Date Before'}
-          </label>
-          <input
-            type="date"
-            name="closingBefore"
-            value={filters.closingBefore}
-            onChange={handleChange}
-            className="w-full p-2 border rounded-md"
-          />
-        </div>
+        {filters.storeType !== 'online' && (
+          <div>
+            <label className="flex items-center mb-2 text-sm font-medium">
+              <Calendar size={16} className="mr-2 text-gray-500" />
+              {filters.storeType === 'opening' 
+                ? 'Opening Before' 
+                : filters.storeType === 'closing'
+                  ? 'Closing Before'
+                  : 'Date Before'}
+            </label>
+            <input
+              type="date"
+              name="closingBefore"
+              value={filters.closingBefore}
+              onChange={handleChange}
+              className="w-full p-2 border rounded-md"
+            />
+          </div>
+        )}
 
         {/* Search results info */}
         {filters.searchQuery && (
@@ -218,6 +312,22 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, setFilters }) => {
             <div className="flex items-center text-sm text-orange-800">
               <Search size={14} className="mr-2" />
               <span>Showing results for: <strong>"{filters.searchQuery}"</strong></span>
+            </div>
+          </div>
+        )}
+
+        {/* Location type info */}
+        {getCurrentLocationType() !== 'all' && (
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="flex items-center text-sm text-blue-800">
+              {getCurrentLocationType() === 'online' ? (
+                <Globe size={14} className="mr-2" />
+              ) : (
+                <Store size={14} className="mr-2" />
+              )}
+              <span>
+                Showing only <strong>{getCurrentLocationType() === 'online' ? 'online' : 'physical'} stores</strong>
+              </span>
             </div>
           </div>
         )}

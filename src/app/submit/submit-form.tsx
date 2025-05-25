@@ -3,7 +3,7 @@ import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Calendar, Clock, MapPin, Building, Tag, Image, Phone, Mail, Info, Check, User, Store, PlusCircle, ArrowLeft, X } from 'lucide-react';
+import { Calendar, Clock, MapPin, Building, Tag, Image, Phone, Mail, Info, Check, User, Store, PlusCircle, ArrowLeft, X, Globe } from 'lucide-react';
 import heic2any from 'heic2any';
 import { geocodeAddressComponents } from '@/lib/geocoding';
 
@@ -17,7 +17,8 @@ interface FormData {
   phone: string;
   email: string;
   website: string;
-  storeType: 'opening' | 'closing';
+  storeType: 'opening' | 'closing' | 'online';  // Added 'online'
+  isOnlineStore: boolean;  // Added for online store flag
   closingDate: string;
   openingDate: string;
   discountPercentage: string;
@@ -26,8 +27,8 @@ interface FormData {
   reasonForTransition: string;
   ownerName: string;
   contactPreference: 'email' | 'phone';
-  storeImage: File | null;  // Keep for backward compatibility
-  storeImages: File[];      // New field for multiple images
+  storeImage: File | null;
+  storeImages: File[];
   verificationDocuments: File | null;
   agreedToTerms: boolean;
 }
@@ -39,11 +40,13 @@ interface GuestTipData {
   city: string;
   state: string;
   zipCode: string;
-  storeImage: File | null;  // Keep for backward compatibility
-  storeImages: File[];      // New field for multiple images
+  website: string;  // Added for online stores
+  storeImage: File | null;
+  storeImages: File[];
   submitterEmail: string;
   discountPercentage: string;
-  storeType: 'opening' | 'closing';
+  storeType: 'opening' | 'closing' | 'online';  // Added 'online'
+  isOnlineStore: boolean;  // Added for online store flag
   openingDate: string;
   specialOffers: string;
   promotionEndDate: string;
@@ -53,7 +56,7 @@ export default function Submitform() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialStoreType = (searchParams?.get('type') as 'opening' | 'closing') || 'closing';
+  const initialStoreType = (searchParams?.get('type') as 'opening' | 'closing' | 'online') || 'closing';
   
   const [userType, setUserType] = useState<'undecided' | 'owner' | 'guest'>('undecided');
   const [formData, setFormData] = useState<FormData>({
@@ -67,6 +70,7 @@ export default function Submitform() {
     email: '',
     website: '',
     storeType: initialStoreType,
+    isOnlineStore: initialStoreType === 'online',  // Auto-set for online stores
     closingDate: '',
     openingDate: '',
     discountPercentage: '',
@@ -88,11 +92,13 @@ export default function Submitform() {
     city: '',
     state: '',
     zipCode: '',
+    website: '',  // Added for online stores
     storeImage: null,
     storeImages: [],
     submitterEmail: '',
     discountPercentage: '',
     storeType: initialStoreType,
+    isOnlineStore: initialStoreType === 'online',  // Auto-set for online stores
     openingDate: '',
     specialOffers: '',
     promotionEndDate: ''
@@ -292,17 +298,19 @@ export default function Submitform() {
     });
   };
 
-  const handleStoreTypeChange = (type: 'opening' | 'closing') => {
+  const handleStoreTypeChange = (type: 'opening' | 'closing' | 'online') => {
     setFormData({
       ...formData,
-      storeType: type
+      storeType: type,
+      isOnlineStore: type === 'online'
     });
   };
 
-  const handleGuestStoreTypeChange = (type: 'opening' | 'closing') => {
+  const handleGuestStoreTypeChange = (type: 'opening' | 'closing' | 'online') => {
     setGuestTipData({
       ...guestTipData,
-      storeType: type
+      storeType: type,
+      isOnlineStore: type === 'online'
     });
   };
   
@@ -333,24 +341,51 @@ export default function Submitform() {
       
       submitData.append('businessName', formData.businessName);
       submitData.append('category', formData.category);
-      submitData.append('address', formData.address);
-      submitData.append('city', formData.city);
-      submitData.append('state', formData.state);
-      submitData.append('zipCode', formData.zipCode);
       submitData.append('phone', formData.phone);
       submitData.append('email', formData.email);
       submitData.append('storeType', formData.storeType);
+      submitData.append('isOnlineStore', formData.isOnlineStore.toString());
       
-      if (formData.website) {
+      // Handle online vs physical store fields
+      if (formData.isOnlineStore) {
+        // For online stores, website is required
+        if (!formData.website) {
+          throw new Error('Website URL is required for online stores');
+        }
         submitData.append('website', formData.website);
+        // Set address fields to empty for online stores
+        submitData.append('address', '');
+        submitData.append('city', '');
+        submitData.append('state', '');
+        submitData.append('zipCode', '');
+      } else {
+        // For physical stores, address is required
+        if (!formData.address || !formData.city || !formData.state || !formData.zipCode) {
+          throw new Error('Address fields are required for physical stores');
+        }
+        submitData.append('address', formData.address);
+        submitData.append('city', formData.city);
+        submitData.append('state', formData.state);
+        submitData.append('zipCode', formData.zipCode);
+        if (formData.website) {
+          submitData.append('website', formData.website);
+        }
       }
       
       if (formData.storeType === 'closing') {
         submitData.append('closingDate', formData.closingDate);
         submitData.append('discountPercentage', formData.discountPercentage);
-      } else {
+      } else if (formData.storeType === 'opening') {
         submitData.append('openingDate', formData.openingDate);
         submitData.append('specialOffers', formData.specialOffers);
+      } else if (formData.storeType === 'online') {
+        // Online stores might have special offers or discount
+        if (formData.specialOffers) {
+          submitData.append('specialOffers', formData.specialOffers);
+        }
+        if (formData.discountPercentage) {
+          submitData.append('discountPercentage', formData.discountPercentage);
+        }
       }
       
       submitData.append('inventoryDescription', formData.inventoryDescription);
@@ -376,32 +411,34 @@ export default function Submitform() {
         submitData.append('verificationDocuments', formData.verificationDocuments);
       }
       
-      // Geocode the address
-      try {
-        const geocodeResult = await geocodeAddressComponents(
-          formData.address,
-          formData.city,
-          formData.state,
-          formData.zipCode
-        );
-        
-        // Add geocoding results to the form data
-        submitData.append('latitude', geocodeResult.latitude.toString());
-        submitData.append('longitude', geocodeResult.longitude.toString());
-        submitData.append('isDefaultLocation', geocodeResult.isDefaultLocation.toString());
-        
-        // If using default location, add a warning but still proceed
-        if (geocodeResult.isDefaultLocation) {
+      // Only geocode if it's a physical store
+      if (!formData.isOnlineStore) {
+        try {
+          const geocodeResult = await geocodeAddressComponents(
+            formData.address,
+            formData.city,
+            formData.state,
+            formData.zipCode
+          );
+          
+          // Add geocoding results to the form data
+          submitData.append('latitude', geocodeResult.latitude.toString());
+          submitData.append('longitude', geocodeResult.longitude.toString());
+          submitData.append('isDefaultLocation', geocodeResult.isDefaultLocation.toString());
+          
+          // If using default location, add a warning but still proceed
+          if (geocodeResult.isDefaultLocation) {
+            setAddressWarning("We couldn't verify this address on the map. Your store will be listed but may not appear at the correct location.");
+            console.warn("Using default location for store, address could not be geocoded");
+          }
+        } catch (error) {
+          console.error('Error geocoding address:', error);
+          // Continue with submission but with default coordinates
+          submitData.append('latitude', '40.7128');
+          submitData.append('longitude', '-74.0060');
+          submitData.append('isDefaultLocation', 'true');
           setAddressWarning("We couldn't verify this address on the map. Your store will be listed but may not appear at the correct location.");
-          console.warn("Using default location for store, address could not be geocoded");
         }
-      } catch (error) {
-        console.error('Error geocoding address:', error);
-        // Continue with submission but with default coordinates
-        submitData.append('latitude', '40.7128');
-        submitData.append('longitude', '-74.0060');
-        submitData.append('isDefaultLocation', 'true');
-        setAddressWarning("We couldn't verify this address on the map. Your store will be listed but may not appear at the correct location.");
       }
       
       console.log('Submitting form data...');
@@ -448,12 +485,21 @@ export default function Submitform() {
       
       submitData.append('storeName', guestTipData.storeName);
       submitData.append('category', guestTipData.category);
-      submitData.append('address', guestTipData.address);
-      submitData.append('city', guestTipData.city);
-      submitData.append('state', guestTipData.state);
-      submitData.append('zipCode', guestTipData.zipCode);
       submitData.append('submitterEmail', guestTipData.submitterEmail);
       submitData.append('storeType', guestTipData.storeType);
+      submitData.append('isOnlineStore', guestTipData.isOnlineStore.toString());
+      
+      // Handle online vs physical store fields
+      if (guestTipData.isOnlineStore) {
+        if (guestTipData.website) {
+          submitData.append('website', guestTipData.website);
+        }
+      } else {
+        submitData.append('address', guestTipData.address);
+        submitData.append('city', guestTipData.city);
+        submitData.append('state', guestTipData.state);
+        submitData.append('zipCode', guestTipData.zipCode);
+      }
       
       if (guestTipData.storeType === 'closing') {
         submitData.append('discountPercentage', guestTipData.discountPercentage);
@@ -480,32 +526,34 @@ export default function Submitform() {
         submitData.append('storeImage', guestTipData.storeImage);
       }
       
-      // Geocode the address
-      try {
-        const geocodeResult = await geocodeAddressComponents(
-          guestTipData.address,
-          guestTipData.city,
-          guestTipData.state,
-          guestTipData.zipCode
-        );
-        
-        // Add geocoding results to the form data
-        submitData.append('latitude', geocodeResult.latitude.toString());
-        submitData.append('longitude', geocodeResult.longitude.toString());
-        submitData.append('isDefaultLocation', geocodeResult.isDefaultLocation.toString());
-        
-        // If using default location, add a warning but still proceed
-        if (geocodeResult.isDefaultLocation) {
+      // Only geocode if it's a physical store
+      if (!guestTipData.isOnlineStore) {
+        try {
+          const geocodeResult = await geocodeAddressComponents(
+            guestTipData.address,
+            guestTipData.city,
+            guestTipData.state,
+            guestTipData.zipCode
+          );
+          
+          // Add geocoding results to the form data
+          submitData.append('latitude', geocodeResult.latitude.toString());
+          submitData.append('longitude', geocodeResult.longitude.toString());
+          submitData.append('isDefaultLocation', geocodeResult.isDefaultLocation.toString());
+          
+          // If using default location, add a warning but still proceed
+          if (geocodeResult.isDefaultLocation) {
+            setAddressWarning("We couldn't verify this address on the map. The store tip will be submitted but may not appear at the correct location.");
+            console.warn("Using default location for store tip, address could not be geocoded");
+          }
+        } catch (error) {
+          console.error('Error geocoding address:', error);
+          // Continue with submission but with default coordinates
+          submitData.append('latitude', '40.7128');
+          submitData.append('longitude', '-74.0060');
+          submitData.append('isDefaultLocation', 'true');
           setAddressWarning("We couldn't verify this address on the map. The store tip will be submitted but may not appear at the correct location.");
-          console.warn("Using default location for store tip, address could not be geocoded");
         }
-      } catch (error) {
-        console.error('Error geocoding address:', error);
-        // Continue with submission but with default coordinates
-        submitData.append('latitude', '40.7128');
-        submitData.append('longitude', '-74.0060');
-        submitData.append('isDefaultLocation', 'true');
-        setAddressWarning("We couldn't verify this address on the map. The store tip will be submitted but may not appear at the correct location.");
       }
       
       console.log('Submitting guest tip data...');
@@ -553,8 +601,8 @@ export default function Submitform() {
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Thank You!</h2>
           <p className="text-lg text-gray-600 mb-6">
             {userType === 'owner' 
-              ? `Your ${formData.storeType} store has been submitted successfully. Our team will review your information and contact you within 1-2 business days.`
-              : `Your ${guestTipData.storeType} store tip has been submitted successfully. Our team will review the information.`}
+              ? `Your ${formData.storeType} ${formData.isOnlineStore ? 'online ' : ''}store has been submitted successfully. Our team will review your information and contact you within 1-2 business days.`
+              : `Your ${guestTipData.storeType} ${guestTipData.isOnlineStore ? 'online ' : ''}store tip has been submitted successfully. Our team will review the information.`}
           </p>
           <div className="mt-6 flex flex-col sm:flex-row justify-center gap-4">
             <button
@@ -573,6 +621,7 @@ export default function Submitform() {
                     email: '',
                     website: '',
                     storeType: initialStoreType,
+                    isOnlineStore: initialStoreType === 'online',
                     closingDate: '',
                     openingDate: '',
                     discountPercentage: '',
@@ -594,11 +643,13 @@ export default function Submitform() {
                     city: '',
                     state: '',
                     zipCode: '',
+                    website: '',
                     storeImage: null,
                     storeImages: [],
                     submitterEmail: '',
                     discountPercentage: '',
                     storeType: initialStoreType,
+                    isOnlineStore: initialStoreType === 'online',
                     openingDate: '',
                     specialOffers: '',
                     promotionEndDate: ''
@@ -652,7 +703,7 @@ export default function Submitform() {
             </div>
             <h3 className="text-xl font-semibold text-center mb-2">I'm a Store Owner</h3>
             <p className="text-gray-600 text-center">
-              Submit your opening or closing store details for approval and listing on our platform.
+              Submit your physical store or online business for approval and listing on our platform.
             </p>
             <p className="text-sm text-blue-600 font-medium text-center mt-4">
               {status === 'unauthenticated' ? '(Requires account login)' : ''}
@@ -668,7 +719,7 @@ export default function Submitform() {
             </div>
             <h3 className="text-xl font-semibold text-center mb-2">I'm a Shopper</h3>
             <p className="text-gray-600 text-center">
-              Let us know about an opening or closing store you've spotted to help others find opportunities.
+              Let us know about a store or online business you've found to help others discover deals.
             </p>
             <p className="text-sm text-blue-600 font-medium text-center mt-4">
               No account required
@@ -748,330 +799,356 @@ export default function Submitform() {
         {/* Store Type Selection */}
         <div className="mb-6">
           <p className="text-md font-medium text-gray-700 mb-3">What type of store are you reporting?</p>
-          <div className="flex space-x-4">
+          <div className="grid grid-cols-3 gap-3">
             <button
               type="button"
               onClick={() => handleGuestStoreTypeChange('closing')}
-              className={`flex-1 py-3 px-4 rounded-md border-2 flex items-center justify-center gap-2 ${
+              className={`py-3 px-4 rounded-md border-2 flex flex-col items-center justify-center gap-2 ${
                 guestTipData.storeType === 'closing' 
                   ? 'border-red-500 bg-red-50 text-red-700' 
                   : 'border-gray-300 text-gray-700 hover:bg-gray-50'
               }`}
             >
               <Store size={20} />
-              <span>Closing Store</span>
+              <span className="text-sm">Closing Store</span>
             </button>
             <button
               type="button"
               onClick={() => handleGuestStoreTypeChange('opening')}
-              className={`flex-1 py-3 px-4 rounded-md border-2 flex items-center justify-center gap-2 ${
+              className={`py-3 px-4 rounded-md border-2 flex flex-col items-center justify-center gap-2 ${
                 guestTipData.storeType === 'opening' 
                   ? 'border-green-500 bg-green-50 text-green-700' 
                   : 'border-gray-300 text-gray-700 hover:bg-gray-50'
               }`}
             >
               <PlusCircle size={20} />
-              <span>Opening Store</span>
+              <span className="text-sm">Opening Store</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleGuestStoreTypeChange('online')}
+              className={`py-3 px-4 rounded-md border-2 flex flex-col items-center justify-center gap-2 ${
+                guestTipData.storeType === 'online' 
+                  ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                  : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <Globe size={20} />
+              <span className="text-sm">Online Store</span>
             </button>
           </div>
         </div>
         
         <form onSubmit={handleGuestSubmit}>
-  <div className="mb-4">
-    <label htmlFor="storeName" className="block text-sm font-medium text-gray-700 mb-1">
-      Store Name <span className="text-red-500">*</span>
-    </label>
-    <div className="relative">
-      <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-        <Building size={18} className="text-gray-500" />
-      </div>
-      <input
-        type="text"
-        id="storeName"
-        name="storeName"
-        value={guestTipData.storeName}
-        onChange={handleGuestTextChange}
-        className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-        placeholder="e.g., Fashion Outlet"
-        required
-      />
-    </div>
-  </div>
-  
-  <div className="mb-4">
-    <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-      Category <span className="text-red-500">*</span>
-    </label>
-    <div className="relative">
-      <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-        <Tag size={18} className="text-gray-500" />
-      </div>
-      <select
-        id="category"
-        name="category"
-        value={guestTipData.category}
-        onChange={handleGuestTextChange}
-        className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white"
-        required
-      >
-        <option value="">Select Category</option>
-        {categories.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </div>
-  </div>
-  
-  <div className="mb-4">
-    <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
-      Street Address <span className="text-red-500">*</span>
-    </label>
-    <div className="relative">
-      <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-        <MapPin size={18} className="text-gray-500" />
-      </div>
-      <input
-        type="text"
-        id="address"
-        name="address"
-        value={guestTipData.address}
-        onChange={handleGuestTextChange}
-        className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-        placeholder="123 Main St"
-        required
-      />
-    </div>
-  </div>
-  
-  <div className="grid grid-cols-2 gap-4">
-    <div className="mb-4">
-      <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
-        City <span className="text-red-500">*</span>
-      </label>
-      <input
-        type="text"
-        id="city"
-        name="city"
-        value={guestTipData.city}
-        onChange={handleGuestTextChange}
-        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-        placeholder="Anytown"
-        required
-      />
-    </div>
-    
-    <div className="grid grid-cols-2 gap-2">
-      <div className="mb-4">
-        <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">
-          State <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          id="state"
-          name="state"
-          value={guestTipData.state}
-          onChange={handleGuestTextChange}
-          className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-          placeholder="CA"
-          maxLength={2}
-          required
-        />
-      </div>
-      
-      <div className="mb-4">
-        <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700 mb-1">
-          Zip Code <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          id="zipCode"
-          name="zipCode"
-          value={guestTipData.zipCode}
-          onChange={handleGuestTextChange}
-          className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-          placeholder="90210"
-          required
-        />
-      </div>
-    </div>
-  </div>
-  
-  {guestTipData.storeType === 'closing' ? (
-    <div className="mb-4">
-      <label htmlFor="discountPercentage" className="block text-sm font-medium text-gray-700 mb-1">
-        Estimated Discount Percentage (Optional)
-      </label>
-      <div className="relative">
-        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-          <Tag size={18} className="text-gray-500" />
-        </div>
-        <input
-          type="number"
-          id="discountPercentage"
-          name="discountPercentage"
-          value={guestTipData.discountPercentage}
-          onChange={handleGuestTextChange}
-          className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-          placeholder="e.g., 50"
-          min={1}
-          max={100}
-        />
-      </div>
-      <p className="text-xs text-gray-500 mt-1">If you know the discount percentage, please enter it here.</p>
-    </div>
-  ) : (
-    <>
-      <div className="mb-4">
-        <label htmlFor="openingDate" className="block text-sm font-medium text-gray-700 mb-1">
-          Expected Opening Date (Optional)
-        </label>
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <Calendar size={18} className="text-gray-500" />
+          <div className="mb-4">
+            <label htmlFor="storeName" className="block text-sm font-medium text-gray-700 mb-1">
+              Store Name <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <Building size={18} className="text-gray-500" />
+              </div>
+              <input
+                type="text"
+                id="storeName"
+                name="storeName"
+                value={guestTipData.storeName}
+                onChange={handleGuestTextChange}
+                className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                placeholder="e.g., Fashion Outlet"
+                required
+              />
+            </div>
           </div>
-          <input
-            type="date"
-            id="openingDate"
-            name="openingDate"
-            value={guestTipData.openingDate}
-            onChange={handleGuestTextChange}
-            className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-        <p className="text-xs text-gray-500 mt-1">If you know when the store will open, please enter it here.</p>
-      </div>
-      
-      <div className="mb-4">
-        <label htmlFor="promotionEndDate" className="block text-sm font-medium text-gray-700 mb-1">
-          Promotion End Date (Optional)
-        </label>
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <Calendar size={18} className="text-gray-500" />
+          
+          <div className="mb-4">
+            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+              Category <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <Tag size={18} className="text-gray-500" />
+              </div>
+              <select
+                id="category"
+                name="category"
+                value={guestTipData.category}
+                onChange={handleGuestTextChange}
+                className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white"
+                required
+              >
+                <option value="">Select Category</option>
+                {categories.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-          <input
-            type="date"
-            id="promotionEndDate"
-            name="promotionEndDate"
-            value={guestTipData.promotionEndDate}
-            onChange={handleGuestTextChange}
-            className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-        <p className="text-xs text-gray-500 mt-1">If you know when the promotion ends, please enter it here.</p>
-      </div>
-      
-      <div className="mb-4">
-        <label htmlFor="discountPercentage" className="block text-sm font-medium text-gray-700 mb-1">
-          Opening Discount Percentage (Optional)
-        </label>
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <Tag size={18} className="text-gray-500" />
-          </div>
-          <input
-            type="number"
-            id="discountPercentage"
-            name="discountPercentage"
-            value={guestTipData.discountPercentage}
-            onChange={handleGuestTextChange}
-            className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-            placeholder="e.g., 30"
-            min={1}
-            max={100}
-          />
-        </div>
-        <p className="text-xs text-gray-500 mt-1">If you know about any opening discounts, please enter the percentage here.</p>
-      </div>
-    </>
-  )}
-  
-  <div className="mb-4">
-    <label htmlFor="submitterEmail" className="block text-sm font-medium text-gray-700 mb-1">
-      Your Email <span className="text-red-500">*</span>
-    </label>
-    <div className="relative">
-      <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-        <Mail size={18} className="text-gray-500" />
-      </div>
-      <input
-        type="email"
-        id="submitterEmail"
-        name="submitterEmail"
-        value={guestTipData.submitterEmail}
-        onChange={handleGuestTextChange}
-        className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-        placeholder="your.email@example.com"
-        required
-      />
-    </div>
-    <p className="text-xs text-gray-500 mt-1">Used only to contact you if we need more information.</p>
-  </div>
-  
-  <div className="mb-4">
-    <label htmlFor="storeImages" className="block text-sm font-medium text-gray-700 mb-1">
-      Store Images
-    </label>
-    <input
-      type="file"
-      id="storeImages"
-      name="storeImages"
-      onChange={handleGuestFileChange}
-      accept="image/jpeg,image/png,image/gif,image/webp,.heic,.HEIC"
-      className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-      multiple  // Enable multiple file selection
-    />
-    <p className="text-xs text-gray-500 mt-1">You can select multiple images. Supported formats: JPEG, PNG, GIF, WEBP, HEIC (iPhone photos)</p>
-    
-    {/* Preview of selected images */}
-    {guestTipData.storeImages.length > 0 && (
-      <div className="mt-3">
-        <p className="text-sm font-medium text-gray-700 mb-2">Selected Images:</p>
-        <div className="flex flex-wrap gap-2">
-          {guestTipData.storeImages.map((image, index) => (
-            <div key={index} className="relative group">
-              <div className="w-24 h-24 border rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
-                <img 
-                  src={URL.createObjectURL(image)} 
-                  alt={`Preview ${index + 1}`} 
-                  className="max-w-full max-h-full object-contain"
+          
+          {/* Conditional fields based on store type */}
+          {guestTipData.isOnlineStore ? (
+            <div className="mb-4">
+              <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-1">
+                Website URL <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <Globe size={18} className="text-gray-500" />
+                </div>
+                <input
+                  type="url"
+                  id="website"
+                  name="website"
+                  value={guestTipData.website}
+                  onChange={handleGuestTextChange}
+                  className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="https://example.com"
+                  required
                 />
               </div>
-              <button
-                type="button"
-                onClick={() => removeGuestImage(index)}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 focus:outline-none"
-              >
-                <X size={14} />
-              </button>
             </div>
-          ))}
-        </div>
-      </div>
-    )}
-  </div>
-  
-  <div className="flex justify-between mt-6">
-    <button
-      type="button"
-      onClick={() => setUserType('undecided')}
-      className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-    >
-      Back
-    </button>
-    <button
-      type="submit"
-      disabled={isSubmitting}
-      className={`bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-        isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
-      }`}
-    >
-      {isSubmitting ? 'Submitting...' : 'Submit Tip'}
-    </button>
-  </div>
-</form>
+          ) : (
+            <>
+              <div className="mb-4">
+                <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+                  Street Address <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <MapPin size={18} className="text-gray-500" />
+                  </div>
+                  <input
+                    type="text"
+                    id="address"
+                    name="address"
+                    value={guestTipData.address}
+                    onChange={handleGuestTextChange}
+                    className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="123 Main St"
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="mb-4">
+                  <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
+                    City <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="city"
+                    name="city"
+                    value={guestTipData.city}
+                    onChange={handleGuestTextChange}
+                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Anytown"
+                    required
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="mb-4">
+                    <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">
+                      State <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      id="state"
+                      name="state"
+                      value={guestTipData.state}
+                      onChange={handleGuestTextChange}
+                      className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="CA"
+                      maxLength={2}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="mb-4">
+                    <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700 mb-1">
+                      Zip Code <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      id="zipCode"
+                      name="zipCode"
+                      value={guestTipData.zipCode}
+                      onChange={handleGuestTextChange}
+                      className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="90210"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+          
+          {/* Type-specific fields */}
+          {guestTipData.storeType === 'closing' ? (
+            <div className="mb-4">
+              <label htmlFor="discountPercentage" className="block text-sm font-medium text-gray-700 mb-1">
+                Estimated Discount Percentage (Optional)
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <Tag size={18} className="text-gray-500" />
+                </div>
+                <input
+                  type="number"
+                  id="discountPercentage"
+                  name="discountPercentage"
+                  value={guestTipData.discountPercentage}
+                  onChange={handleGuestTextChange}
+                  className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="e.g., 50"
+                  min={1}
+                  max={100}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">If you know the discount percentage, please enter it here.</p>
+            </div>
+          ) : guestTipData.storeType === 'opening' ? (
+            <>
+              <div className="mb-4">
+                <label htmlFor="openingDate" className="block text-sm font-medium text-gray-700 mb-1">
+                  Expected Opening Date (Optional)
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <Calendar size={18} className="text-gray-500" />
+                  </div>
+                  <input
+                    type="date"
+                    id="openingDate"
+                    name="openingDate"
+                    value={guestTipData.openingDate}
+                    onChange={handleGuestTextChange}
+                    className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+              
+              <div className="mb-4">
+                <label htmlFor="specialOffers" className="block text-sm font-medium text-gray-700 mb-1">
+                  Special Offers (Optional)
+                </label>
+                <textarea
+                  id="specialOffers"
+                  name="specialOffers"
+                  value={guestTipData.specialOffers}
+                  onChange={handleGuestTextChange}
+                  rows={2}
+                  className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Describe any opening specials or promotions..."
+                />
+              </div>
+            </>
+          ) : (
+            // Online store specific fields
+            <div className="mb-4">
+              <label htmlFor="specialOffers" className="block text-sm font-medium text-gray-700 mb-1">
+                Current Promotions (Optional)
+              </label>
+              <textarea
+                id="specialOffers"
+                name="specialOffers"
+                value={guestTipData.specialOffers}
+                onChange={handleGuestTextChange}
+                rows={2}
+                className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Describe any current promotions or discounts..."
+              />
+            </div>
+          )}
+          
+          <div className="mb-4">
+            <label htmlFor="submitterEmail" className="block text-sm font-medium text-gray-700 mb-1">
+              Your Email <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <Mail size={18} className="text-gray-500" />
+              </div>
+              <input
+                type="email"
+                id="submitterEmail"
+                name="submitterEmail"
+                value={guestTipData.submitterEmail}
+                onChange={handleGuestTextChange}
+                className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                placeholder="your.email@example.com"
+                required
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Used only to contact you if we need more information.</p>
+          </div>
+          
+          <div className="mb-4">
+            <label htmlFor="storeImages" className="block text-sm font-medium text-gray-700 mb-1">
+              Store Images
+            </label>
+            <input
+              type="file"
+              id="storeImages"
+              name="storeImages"
+              onChange={handleGuestFileChange}
+              accept="image/jpeg,image/png,image/gif,image/webp,.heic,.HEIC"
+              className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              multiple
+            />
+            <p className="text-xs text-gray-500 mt-1">You can select multiple images. {guestTipData.isOnlineStore ? 'Screenshots or product images' : 'Store photos'}. Supported formats: JPEG, PNG, GIF, WEBP, HEIC (iPhone photos)</p>
+            
+            {/* Preview of selected images */}
+            {guestTipData.storeImages.length > 0 && (
+              <div className="mt-3">
+                <p className="text-sm font-medium text-gray-700 mb-2">Selected Images:</p>
+                <div className="flex flex-wrap gap-2">
+                  {guestTipData.storeImages.map((image, index) => (
+                    <div key={index} className="relative group">
+                      <div className="w-24 h-24 border rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
+                        <img 
+                          src={URL.createObjectURL(image)} 
+                          alt={`Preview ${index + 1}`} 
+                          className="max-w-full max-h-full object-contain"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeGuestImage(index)}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 focus:outline-none"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex justify-between mt-6">
+            <button
+              type="button"
+              onClick={() => setUserType('undecided')}
+              className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            >
+              Back
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className={`bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit Tip'}
+            </button>
+          </div>
+        </form>
       </div>
     );
   }
@@ -1098,30 +1175,42 @@ export default function Submitform() {
       {/* Store Type Selection */}
       <div className="mb-6">
         <p className="text-md font-medium text-gray-700 mb-3">What type of store are you submitting?</p>
-        <div className="flex space-x-4">
+        <div className="grid grid-cols-3 gap-3">
           <button
             type="button"
             onClick={() => handleStoreTypeChange('closing')}
-            className={`flex-1 py-3 px-4 rounded-md border-2 flex items-center justify-center gap-2 ${
+            className={`py-3 px-4 rounded-md border-2 flex flex-col items-center justify-center gap-2 ${
               formData.storeType === 'closing' 
                 ? 'border-red-500 bg-red-50 text-red-700' 
                 : 'border-gray-300 text-gray-700 hover:bg-gray-50'
             }`}
           >
             <Store size={20} />
-            <span>Closing Store</span>
+            <span className="text-sm">Closing Store</span>
           </button>
           <button
             type="button"
             onClick={() => handleStoreTypeChange('opening')}
-            className={`flex-1 py-3 px-4 rounded-md border-2 flex items-center justify-center gap-2 ${
+            className={`py-3 px-4 rounded-md border-2 flex flex-col items-center justify-center gap-2 ${
               formData.storeType === 'opening' 
                 ? 'border-green-500 bg-green-50 text-green-700' 
                 : 'border-gray-300 text-gray-700 hover:bg-gray-50'
             }`}
           >
             <PlusCircle size={20} />
-            <span>Opening Store</span>
+            <span className="text-sm">Opening Store</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleStoreTypeChange('online')}
+            className={`py-3 px-4 rounded-md border-2 flex flex-col items-center justify-center gap-2 ${
+              formData.storeType === 'online' 
+                ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <Globe size={20} />
+            <span className="text-sm">Online Store</span>
           </button>
         </div>
       </div>
@@ -1135,7 +1224,7 @@ export default function Submitform() {
         <div 
           className={`flex-1 border-b-2 pb-2 ${formStep >= 2 ? 'border-blue-500 text-blue-600' : 'border-gray-300 text-gray-500'}`}
         >
-          2. {formData.storeType === 'closing' ? 'Closing' : 'Opening'} Information
+          2. {formData.storeType === 'closing' ? 'Closing' : formData.storeType === 'opening' ? 'Opening' : 'Business'} Information
         </div>
         <div 
           className={`flex-1 border-b-2 pb-2 ${formStep >= 3 ? 'border-blue-500 text-blue-600' : 'border-gray-300 text-gray-500'}`}
@@ -1196,79 +1285,84 @@ export default function Submitform() {
               </div>
             </div>
             
-            <div className="mb-4">
-              <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
-                Street Address <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <MapPin size={18} className="text-gray-500" />
-                </div>
-                <input
-                  type="text"
-                  id="address"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleTextChange}
-                  className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="123 Main St"
-                  required
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="mb-4">
-                <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
-                  City <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="city"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleTextChange}
-                  className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Anytown"
-                  required
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-2">
+            {/* Conditional location fields - only show for physical stores */}
+            {!formData.isOnlineStore && (
+              <>
                 <div className="mb-4">
-                  <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">
-                    State <span className="text-red-500">*</span>
+                  <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+                    Street Address <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    id="state"
-                    name="state"
-                    value={formData.state}
-                    onChange={handleTextChange}
-                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="CA"
-                    maxLength={2}
-                    required
-                  />
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                      <MapPin size={18} className="text-gray-500" />
+                    </div>
+                    <input
+                      type="text"
+                      id="address"
+                      name="address"
+                      value={formData.address}
+                      onChange={handleTextChange}
+                      className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="123 Main St"
+                      required={!formData.isOnlineStore}
+                    />
+                  </div>
                 </div>
                 
-                <div className="mb-4">
-                  <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700 mb-1">
-                    Zip Code <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="zipCode"
-                    name="zipCode"
-                    value={formData.zipCode}
-                    onChange={handleTextChange}
-                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="90210"
-                    required
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="mb-4">
+                    <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
+                      City <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      id="city"
+                      name="city"
+                      value={formData.city}
+                      onChange={handleTextChange}
+                      className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Anytown"
+                      required={!formData.isOnlineStore}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="mb-4">
+                      <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">
+                        State <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        id="state"
+                        name="state"
+                        value={formData.state}
+                        onChange={handleTextChange}
+                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="CA"
+                        maxLength={2}
+                        required={!formData.isOnlineStore}
+                      />
+                    </div>
+                    
+                    <div className="mb-4">
+                      <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700 mb-1">
+                        Zip Code <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        id="zipCode"
+                        name="zipCode"
+                        value={formData.zipCode}
+                        onChange={handleTextChange}
+                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="90210"
+                        required={!formData.isOnlineStore}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </>
+            )}
             
             <div className="mb-4">
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
@@ -1314,17 +1408,26 @@ export default function Submitform() {
             
             <div className="mb-4">
               <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-1">
-                Website
+                Website {formData.isOnlineStore && <span className="text-red-500">*</span>}
               </label>
-              <input
-                type="url"
-                id="website"
-                name="website"
-                value={formData.website}
-                onChange={handleTextChange}
-                className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                placeholder="https://www.yourbusiness.com"
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <Globe size={18} className="text-gray-500" />
+                </div>
+                <input
+                  type="url"
+                  id="website"
+                  name="website"
+                  value={formData.website}
+                  onChange={handleTextChange}
+                  className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="https://www.yourbusiness.com"
+                  required={formData.isOnlineStore}
+                />
+              </div>
+              {formData.isOnlineStore && (
+                <p className="text-xs text-gray-500 mt-1">Website URL is required for online stores</p>
+              )}
             </div>
             
             <div className="mt-6 flex justify-between">
@@ -1349,7 +1452,7 @@ export default function Submitform() {
         {formStep === 2 && (
           <div>
             <h2 className="text-xl font-semibold mb-4">
-              {formData.storeType === 'closing' ? 'Closing' : 'Opening'} Information
+              {formData.storeType === 'closing' ? 'Closing' : formData.storeType === 'opening' ? 'Opening' : 'Business'} Information
             </h2>
             
             {formData.storeType === 'closing' ? (
@@ -1397,7 +1500,7 @@ export default function Submitform() {
                   </div>
                 </div>
               </>
-            ) : (
+            ) : formData.storeType === 'opening' ? (
               <>
                 <div className="mb-4">
                   <label htmlFor="openingDate" className="block text-sm font-medium text-gray-700 mb-1">
@@ -1439,6 +1542,51 @@ export default function Submitform() {
                   </div>
                 </div>
               </>
+            ) : (
+              // Online store specific fields
+              <>
+                <div className="mb-4">
+                  <label htmlFor="specialOffers" className="block text-sm font-medium text-gray-700 mb-1">
+                    Current Promotions/Offers
+                  </label>
+                  <div className="relative">
+                    <div className="absolute top-3 left-3 pointer-events-none">
+                      <Info size={18} className="text-gray-500" />
+                    </div>
+                    <textarea
+                      id="specialOffers"
+                      name="specialOffers"
+                      value={formData.specialOffers}
+                      onChange={handleTextChange}
+                      rows={3}
+                      className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Describe any current promotions, discounts, or special offers..."
+                    />
+                  </div>
+                </div>
+                
+                <div className="mb-4">
+                  <label htmlFor="discountPercentage" className="block text-sm font-medium text-gray-700 mb-1">
+                    Current Discount Percentage (Optional)
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                      <Tag size={18} className="text-gray-500" />
+                    </div>
+                    <input
+                      type="number"
+                      id="discountPercentage"
+                      name="discountPercentage"
+                      value={formData.discountPercentage}
+                      onChange={handleTextChange}
+                      className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="e.g., 20"
+                      min={1}
+                      max={100}
+                    />
+                  </div>
+                </div>
+              </>
             )}
             
             <div className="mb-4">
@@ -1460,7 +1608,7 @@ export default function Submitform() {
                   className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                   placeholder={formData.storeType === 'closing' 
                     ? "Describe the inventory items that will be available during the closing sale..."
-                    : "Describe the products or services your new business will offer..."}
+                    : "Describe the products or services your business offers..."}
                   required
                 />
               </div>
@@ -1468,7 +1616,7 @@ export default function Submitform() {
             
             <div className="mb-4">
               <label htmlFor="reasonForTransition" className="block text-sm font-medium text-gray-700 mb-1">
-                Reason for {formData.storeType === 'closing' ? 'Closing' : 'Opening'} (Optional)
+                {formData.storeType === 'closing' ? 'Reason for Closing' : formData.storeType === 'opening' ? 'Reason for Opening' : 'About Your Business'} (Optional)
               </label>
               <textarea
                 id="reasonForTransition"
@@ -1479,7 +1627,9 @@ export default function Submitform() {
                 className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                 placeholder={formData.storeType === 'closing' 
                   ? "Share why your store is closing if you'd like..."
-                  : "Share what inspired you to open this business..."}
+                  : formData.storeType === 'opening'
+                  ? "Share what inspired you to open this business..."
+                  : "Tell us more about your business..."}
               />
             </div>
             
@@ -1563,9 +1713,9 @@ export default function Submitform() {
                 onChange={handleFileChange}
                 accept="image/jpeg,image/png,image/gif,image/webp,.heic,.HEIC"
                 className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                multiple  // Enable multiple file selection
+                multiple
               />
-              <p className="text-xs text-gray-500 mt-1">You can select multiple images. Supported formats: JPEG, PNG, GIF, WEBP, HEIC (iPhone photos)</p>
+              <p className="text-xs text-gray-500 mt-1">You can select multiple images. {formData.isOnlineStore ? 'Screenshots or product images' : 'Store front or interior photos'}. Supported formats: JPEG, PNG, GIF, WEBP, HEIC (iPhone photos)</p>
               
               {/* Preview of selected images */}
               {formData.storeImages.length > 0 && (
@@ -1625,7 +1775,7 @@ export default function Submitform() {
                   className="form-checkbox h-4 w-4 text-blue-600"
                 />
                 <span className="ml-2 text-sm text-gray-700">
-                  I confirm that I am authorized to submit this store and that all information provided is accurate. I understand that verification may be required before listing. <span className="text-red-500">*</span>
+                  I confirm that I am authorized to submit this {formData.isOnlineStore ? 'online business' : 'store'} and that all information provided is accurate. I understand that verification may be required before listing. <span className="text-red-500">*</span>
                 </span>
               </label>
             </div>
