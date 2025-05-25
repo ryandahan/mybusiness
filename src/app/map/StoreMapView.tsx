@@ -59,53 +59,50 @@ export default function StoreMapView({ filters }: StoreMapViewProps) {
       try {
         setLoading(true);
         
-        // If there's a search query, use the search API
+        // Use the stores API for both regular and search queries
+        const params = new URLSearchParams();
+        
+        // Add search query if exists
         if (filters.searchQuery && filters.searchQuery.trim()) {
-          const searchResponse = await fetch(`/api/search?q=${encodeURIComponent(filters.searchQuery)}&limit=50`);
-          if (!searchResponse.ok) {
-            throw new Error('Failed to search stores');
-          }
-          const searchData = await searchResponse.json();
-          
-          // Convert search results to StoreData format
-          const searchStores = searchData.map((result: any) => ({
-            ...result,
-            storeImages: result.storeImages || [],
-          }));
-          
-          setStores(searchStores);
-        } else {
-          // Use regular store API with filters
-          const params = new URLSearchParams();
-          
-          if (filters.storeType && filters.storeType !== 'all') {
-            params.append('storeType', filters.storeType);
-          }
-          
-          if (filters.category && filters.category !== 'All Categories') {
-            params.append('category', filters.category);
-          }
-          
-          if (filters.minDiscount > 0 && (filters.storeType === 'closing' || filters.storeType === 'all')) {
-            params.append('minDiscount', filters.minDiscount.toString());
-          }
-          
-          if (filters.closingBefore) {
-            const dateParamName = filters.storeType === 'opening' ? 'openingBefore' : 'closingBefore';
-            params.append(dateParamName, filters.closingBefore);
-          }
-          
-          const queryString = params.toString() ? `?${params.toString()}` : '';
-          const response = await fetch(`/api/stores${queryString}`);
-          
-          if (!response.ok) {
-            throw new Error('Failed to fetch stores');
-          }
-          
-          const data = await response.json();
-          setStores(data);
+          params.append('q', filters.searchQuery);
         }
         
+        if (filters.storeType && filters.storeType !== 'all') {
+          params.append('storeType', filters.storeType);
+        }
+        
+        if (filters.category && filters.category !== 'All Categories') {
+          params.append('category', filters.category);
+        }
+        
+        if (filters.minDiscount > 0 && (filters.storeType === 'closing' || filters.storeType === 'all')) {
+          params.append('minDiscount', filters.minDiscount.toString());
+        }
+        
+        if (filters.closingBefore) {
+          const dateParamName = filters.storeType === 'opening' ? 'openingBefore' : 'closingBefore';
+          params.append(dateParamName, filters.closingBefore);
+        }
+        
+        const queryString = params.toString() ? `?${params.toString()}` : '';
+        console.log('[StoreMapView] Fetching with URL:', `/api/stores${queryString}`);
+        
+        const response = await fetch(`/api/stores${queryString}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch stores');
+        }
+        
+        const data = await response.json();
+        console.log('[StoreMapView] Received stores:', data.length);
+        
+        // Convert the store data to include storeImages array for compatibility
+        const storesWithImages = data.map((store: any) => ({
+          ...store,
+          storeImages: store.images ? store.images.map((img: any) => img.url) : []
+        }));
+        
+        setStores(storesWithImages);
         setError(null);
       } catch (err) {
         console.error('Error fetching stores:', err);
@@ -119,24 +116,37 @@ export default function StoreMapView({ filters }: StoreMapViewProps) {
   }, [filters]);
 
   useEffect(() => {
-    if (!userLocation || !stores.length) {
-      setFilteredStores(stores);
+    // Always filter out stores without valid coordinates first
+    const storesWithValidCoords = stores.filter(store => {
+      return store.latitude && 
+             store.longitude && 
+             !isNaN(store.latitude) && 
+             !isNaN(store.longitude) &&
+             store.latitude !== 0 &&
+             store.longitude !== 0;
+    });
+
+    console.log(`[StoreMapView] Total stores: ${stores.length}, Valid coordinates: ${storesWithValidCoords.length}`);
+
+    if (!userLocation || !storesWithValidCoords.length) {
+      setFilteredStores(storesWithValidCoords);
       return;
     }
 
-    const filtered = stores.filter(store => {
-      if (!store.latitude || !store.longitude) return false;
-      
+    // Then apply distance filtering if user location is available
+    const filtered = storesWithValidCoords.filter(store => {
+      // Safe to use type assertion since we already filtered for valid coordinates
       const distance = calculateDistance(
         userLocation.lat,
         userLocation.lng,
-        store.latitude,
-        store.longitude
+        store.latitude as number,
+        store.longitude as number
       );
       
       return distance <= filters.maxDistance;
     });
     
+    console.log(`[StoreMapView] After distance filter: ${filtered.length} stores within ${filters.maxDistance} miles`);
     setFilteredStores(filtered);
   }, [userLocation, stores, filters.maxDistance]);
 
@@ -182,6 +192,7 @@ export default function StoreMapView({ filters }: StoreMapViewProps) {
               {!loading && filteredStores.length > 0 && (
                 <p className="text-sm text-blue-700">
                   Showing stores matching "{filters.searchQuery}"
+                  {stores.length !== filteredStores.length && ` (${stores.length - filteredStores.length} stores hidden due to missing location data)`}
                 </p>
               )}
             </div>
@@ -305,6 +316,11 @@ export default function StoreMapView({ filters }: StoreMapViewProps) {
               <p className="text-gray-500 text-sm mt-2">
                 Try searching for different terms like "electronics", "clothing", or specific store names.
               </p>
+              {stores.length > 0 && (
+                <p className="text-gray-500 text-xs mt-1">
+                  Note: {stores.length} store{stores.length !== 1 ? 's were' : ' was'} found but {stores.length !== 1 ? 'they don\'t' : 'it doesn\'t'} have valid location data for mapping.
+                </p>
+              )}
             </div>
           )}
         </>

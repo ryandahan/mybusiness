@@ -156,18 +156,34 @@ export async function GET(req: NextRequest) {
     const closingBefore = searchParams.get('closingBefore') ? new Date(searchParams.get('closingBefore')!) : undefined;
     const openingBefore = searchParams.get('openingBefore') ? new Date(searchParams.get('openingBefore')!) : undefined;
     
+    // NEW: Handle search query
+    const searchQuery = searchParams.get('q') || searchParams.get('search');
+    
     // Build where clause
     const whereClause: any = {
       isApproved: true,
     };
+    
+    // NEW: Add text search functionality
+    if (searchQuery && searchQuery.trim()) {
+      console.log('[Stores API] Searching for:', searchQuery);
+      whereClause.OR = [
+        { businessName: { contains: searchQuery, mode: 'insensitive' } },
+        { category: { contains: searchQuery, mode: 'insensitive' } },
+        { inventoryDescription: { contains: searchQuery, mode: 'insensitive' } },
+        { address: { contains: searchQuery, mode: 'insensitive' } },
+        { city: { contains: searchQuery, mode: 'insensitive' } },
+        { state: { contains: searchQuery, mode: 'insensitive' } }
+      ];
+    }
     
     // Filter by store type
     if (storeType && storeType !== 'all') {
       whereClause.storeType = storeType;
     }
     
-    // Filter by category
-    if (category && category !== 'All Categories') {
+    // Filter by category (only if not searching, to avoid conflicts)
+    if (category && category !== 'All Categories' && !searchQuery) {
       whereClause.category = category;
     }
     
@@ -176,14 +192,13 @@ export async function GET(req: NextRequest) {
       if (storeType === 'closing') {
         whereClause.discountPercentage = { gte: minDiscount };
       } else if (storeType === 'all' || !storeType) {
-        whereClause.AND = [
-          {
-            OR: [
-              { storeType: 'closing', discountPercentage: { gte: minDiscount } },
-              { storeType: 'opening' }
-            ]
-          }
-        ];
+        if (!whereClause.AND) whereClause.AND = [];
+        whereClause.AND.push({
+          OR: [
+            { storeType: 'closing', discountPercentage: { gte: minDiscount } },
+            { storeType: 'opening' }
+          ]
+        });
       }
     }
     
@@ -212,16 +227,23 @@ export async function GET(req: NextRequest) {
       }
     }
     
+    console.log('[Stores API] Where clause:', JSON.stringify(whereClause, null, 2));
+    
     // Query for stores with filters - including related images
     const stores = await prisma.store.findMany({
       where: whereClause,
-      orderBy: {
-        createdAt: 'desc'
-      },
+      orderBy: searchQuery ? [
+        // When searching, prioritize exact business name matches
+        { businessName: 'asc' }
+      ] : [
+        { createdAt: 'desc' }
+      ],
       include: {
         images: true // Include the related images
       }
     });
+    
+    console.log('[Stores API] Found stores:', stores.length);
     
     return NextResponse.json(stores);
   } catch (error) {
