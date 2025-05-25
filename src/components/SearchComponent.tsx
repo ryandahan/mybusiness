@@ -47,7 +47,7 @@ const SearchComponent: React.FC = () => {
         setSearchResults([]);
         setShowResults(false);
       }
-    }, 300);
+    }, 500); // Increased from 300ms to 500ms
 
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
@@ -65,40 +65,35 @@ const SearchComponent: React.FC = () => {
   }, []);
 
   // Handle keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (!showResults) return;
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showResults && event.key !== 'Enter') return;
 
-      switch (event.key) {
-        case 'ArrowDown':
-          event.preventDefault();
-          setSelectedIndex(prev => 
-            prev < searchResults.length - 1 ? prev + 1 : prev
-          );
-          break;
-        case 'ArrowUp':
-          event.preventDefault();
-          setSelectedIndex(prev => prev > 0 ? prev - 1 : -1);
-          break;
-        case 'Enter':
-          event.preventDefault();
-          if (selectedIndex >= 0 && searchResults[selectedIndex]) {
-            router.push(`/stores/${searchResults[selectedIndex].id}`);
-            setShowResults(false);
-          } else if (searchQuery.trim()) {
-            handleSearchSubmit();
-          }
-          break;
-        case 'Escape':
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        setSelectedIndex(prev => 
+          prev < searchResults.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        setSelectedIndex(prev => prev > 0 ? prev - 1 : -1);
+        break;
+      case 'Enter':
+        event.preventDefault();
+        if (selectedIndex >= 0 && searchResults[selectedIndex]) {
+          router.push(`/stores/${searchResults[selectedIndex].id}`);
           setShowResults(false);
-          setSelectedIndex(-1);
-          break;
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [showResults, selectedIndex, searchResults, searchQuery, router]);
+        } else if (searchQuery.trim()) {
+          handleSearchSubmit();
+        }
+        break;
+      case 'Escape':
+        setShowResults(false);
+        setSelectedIndex(-1);
+        break;
+    }
+  };
 
   const performSearch = async (query: string) => {
     setIsSearching(true);
@@ -179,6 +174,7 @@ const SearchComponent: React.FC = () => {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
           onFocus={() => searchQuery.length >= 2 && setShowResults(true)}
           placeholder="Search for stores, categories, or items..."
           className="w-full pl-12 pr-12 py-4 text-lg border-2 border-gray-300 rounded-2xl focus:border-orange-500 focus:ring-0 focus:outline-none bg-white shadow-lg transition-all duration-200"
