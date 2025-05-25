@@ -1,9 +1,9 @@
 "use client"
 
 import React from 'react';
-import { Filter, Tag, Calendar, MapPin } from 'lucide-react';
+import { Filter, Tag, Calendar, MapPin, Search } from 'lucide-react';
 
-// Define the props type with storeType added
+// Define the props type with searchQuery added
 interface FilterPanelProps {
   filters: {
     storeType: 'closing' | 'opening' | 'all';
@@ -11,6 +11,7 @@ interface FilterPanelProps {
     minDiscount: number;
     maxDistance: number;
     closingBefore: string;
+    searchQuery: string;
   };
   setFilters: React.Dispatch<React.SetStateAction<{
     storeType: 'closing' | 'opening' | 'all';
@@ -18,10 +19,11 @@ interface FilterPanelProps {
     minDiscount: number;
     maxDistance: number;
     closingBefore: string;
+    searchQuery: string;
   }>>;
 }
 
-// Mock categories for filtering
+// Store categories for filtering
 const storeCategories = [
   "All Categories",
   "Clothing & Apparel",
@@ -38,6 +40,7 @@ const storeCategories = [
   "Pet Supplies", 
   "Office Supplies",
   "Beauty & Cosmetics",
+  "Restaurant",
   "Other"
 ];
 
@@ -58,6 +61,24 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, setFilters }) => {
       </div>
       
       <div className="space-y-4">
+        {/* Search within results */}
+        {!filters.searchQuery && (
+          <div>
+            <label className="flex items-center mb-2 text-sm font-medium">
+              <Search size={16} className="mr-2 text-gray-500" />
+              Search in Map
+            </label>
+            <input
+              type="text"
+              name="searchQuery"
+              value={filters.searchQuery}
+              onChange={handleChange}
+              placeholder="Search stores, categories, items..."
+              className="w-full p-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+        )}
+
         {/* Category filter */}
         <div>
           <label className="flex items-center mb-2 text-sm font-medium">
@@ -141,6 +162,16 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, setFilters }) => {
             className="w-full p-2 border rounded-md"
           />
         </div>
+
+        {/* Search results info */}
+        {filters.searchQuery && (
+          <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-md">
+            <div className="flex items-center text-sm text-orange-800">
+              <Search size={14} className="mr-2" />
+              <span>Showing results for: <strong>"{filters.searchQuery}"</strong></span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

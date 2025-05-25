@@ -4,7 +4,7 @@ import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
-import { Home, Store, PlusCircle } from 'lucide-react';
+import { Home, Store, PlusCircle, Search, X } from 'lucide-react';
 import FilterPanel from './FilterPanel';
 import StoreMapView from './StoreMapView';
 
@@ -12,13 +12,15 @@ import StoreMapView from './StoreMapView';
 function MapContent() {
   const searchParams = useSearchParams();
   const initialStoreType = searchParams?.get('type') || 'closing';
+  const initialSearch = searchParams?.get('search') || '';
   
   const [filters, setFilters] = useState({
     storeType: initialStoreType as 'closing' | 'opening' | 'all',
     category: '',
     minDiscount: 0,
     maxDistance: 50,
-    closingBefore: ''
+    closingBefore: '',
+    searchQuery: initialSearch
   });
 
   const storeTypeLabels = {
@@ -27,10 +29,41 @@ function MapContent() {
     all: 'All'
   };
 
+  const clearSearch = () => {
+    setFilters(prev => ({ ...prev, searchQuery: '' }));
+    // Remove search param from URL without page reload
+    const url = new URL(window.location.href);
+    url.searchParams.delete('search');
+    window.history.replaceState({}, '', url.toString());
+  };
+
   return (
     <>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Find {filters.storeType === 'all' ? '' : `${storeTypeLabels[filters.storeType]} `}Stores Near You</h1>
+        <div>
+          <h1 className="text-3xl font-bold">
+            {filters.searchQuery 
+              ? `Search Results for "${filters.searchQuery}"`
+              : `Find ${filters.storeType === 'all' ? '' : `${storeTypeLabels[filters.storeType]} `}Stores Near You`
+            }
+          </h1>
+          
+          {filters.searchQuery && (
+            <div className="mt-2">
+              <div className="inline-flex items-center bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm">
+                <Search size={14} className="mr-2" />
+                Searching for: "{filters.searchQuery}"
+                <button
+                  onClick={clearSearch}
+                  className="ml-2 hover:bg-orange-200 rounded-full p-1"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+        
         <Link 
           href="/"
           className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
@@ -40,43 +73,45 @@ function MapContent() {
         </Link>
       </div>
       
-      {/* Store Type Selector */}
-      <div className="mb-6">
-        <div className="flex bg-gray-100 p-1 rounded-lg inline-flex">
-          <button
-            onClick={() => setFilters({...filters, storeType: 'all'})}
-            className={`px-4 py-2 rounded-md text-sm font-medium ${
-              filters.storeType === 'all' 
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            All Stores
-          </button>
-          <button
-            onClick={() => setFilters({...filters, storeType: 'closing'})}
-            className={`px-4 py-2 rounded-md text-sm font-medium flex items-center ${
-              filters.storeType === 'closing' 
-                ? 'bg-red-600 text-white'
-                : 'text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <Store size={16} className="mr-1" />
-            Closing Stores
-          </button>
-          <button
-            onClick={() => setFilters({...filters, storeType: 'opening'})}
-            className={`px-4 py-2 rounded-md text-sm font-medium flex items-center ${
-              filters.storeType === 'opening' 
-                ? 'bg-green-600 text-white'
-                : 'text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <PlusCircle size={16} className="mr-1" />
-            Opening Stores
-          </button>
+      {/* Store Type Selector - only show if no search query */}
+      {!filters.searchQuery && (
+        <div className="mb-6">
+          <div className="flex bg-gray-100 p-1 rounded-lg inline-flex">
+            <button
+              onClick={() => setFilters({...filters, storeType: 'all'})}
+              className={`px-4 py-2 rounded-md text-sm font-medium ${
+                filters.storeType === 'all' 
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              All Stores
+            </button>
+            <button
+              onClick={() => setFilters({...filters, storeType: 'closing'})}
+              className={`px-4 py-2 rounded-md text-sm font-medium flex items-center ${
+                filters.storeType === 'closing' 
+                  ? 'bg-red-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Store size={16} className="mr-1" />
+              Closing Stores
+            </button>
+            <button
+              onClick={() => setFilters({...filters, storeType: 'opening'})}
+              className={`px-4 py-2 rounded-md text-sm font-medium flex items-center ${
+                filters.storeType === 'opening' 
+                  ? 'bg-green-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <PlusCircle size={16} className="mr-1" />
+              Opening Stores
+            </button>
+          </div>
         </div>
-      </div>
+      )}
       
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="w-full lg:w-1/4">

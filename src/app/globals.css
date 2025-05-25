@@ -20,6 +20,43 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Fix for input fields in dark mode */
+@media (prefers-color-scheme: dark) {
+  input, textarea, select {
+    background-color: #1a1a1a;
+    color: #ededed;
+    border-color: #374151;
+  }
+  
+  input::placeholder,
+  textarea::placeholder {
+    color: #9ca3af;
+  }
+  
+  /* Fix for file inputs */
+  input[type="file"] {
+    background-color: #1a1a1a;
+    color: #ededed;
+  }
+  
+  /* Fix for select dropdown options */
+  option {
+    background-color: #1a1a1a;
+    color: #ededed;
+  }
+}
+
+/* Fix for light mode to ensure proper contrast */
+input, textarea, select {
+  background-color: white;
+  color: #171717;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #6b7280;
+}
+
 /* Hide scrollbar for Chrome, Safari and Opera */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
@@ -29,6 +66,28 @@ body {
 .scrollbar-hide {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
+}
+
+/* Line clamp utilities */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 /* Animation keyframes */
@@ -87,4 +146,58 @@ body {
         
 .animate-fade-in-up {
   animation: fadeInUp 1.2s ease-out;
+}
+
+/* Custom search component styles */
+.search-container {
+  position: relative;
+}
+
+.search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  max-height: 400px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  margin-top: 8px;
+}
+
+.search-result-item {
+  padding: 16px 24px;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.search-result-item:hover {
+  background-color: #f9fafb;
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.search-result-item.selected {
+  background-color: #fef3cd;
+  border-color: #f59e0b;
+}
+
+/* Pulse animation for urgent elements */
+@keyframes pulse-orange {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .8;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-orange {
+  animation: pulse-orange 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }

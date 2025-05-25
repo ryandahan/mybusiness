@@ -17,6 +17,7 @@ interface StoreMapViewProps {
     minDiscount: number;
     maxDistance: number;
     closingBefore: string;
+    searchQuery: string;
   };
 }
 
@@ -58,36 +59,53 @@ export default function StoreMapView({ filters }: StoreMapViewProps) {
       try {
         setLoading(true);
         
-        const params = new URLSearchParams();
-        
-        // Add store type to query params
-        if (filters.storeType && filters.storeType !== 'all') {
-          params.append('storeType', filters.storeType);
+        // If there's a search query, use the search API
+        if (filters.searchQuery && filters.searchQuery.trim()) {
+          const searchResponse = await fetch(`/api/search?q=${encodeURIComponent(filters.searchQuery)}&limit=50`);
+          if (!searchResponse.ok) {
+            throw new Error('Failed to search stores');
+          }
+          const searchData = await searchResponse.json();
+          
+          // Convert search results to StoreData format
+          const searchStores = searchData.map((result: any) => ({
+            ...result,
+            storeImages: result.storeImages || [],
+          }));
+          
+          setStores(searchStores);
+        } else {
+          // Use regular store API with filters
+          const params = new URLSearchParams();
+          
+          if (filters.storeType && filters.storeType !== 'all') {
+            params.append('storeType', filters.storeType);
+          }
+          
+          if (filters.category && filters.category !== 'All Categories') {
+            params.append('category', filters.category);
+          }
+          
+          if (filters.minDiscount > 0 && (filters.storeType === 'closing' || filters.storeType === 'all')) {
+            params.append('minDiscount', filters.minDiscount.toString());
+          }
+          
+          if (filters.closingBefore) {
+            const dateParamName = filters.storeType === 'opening' ? 'openingBefore' : 'closingBefore';
+            params.append(dateParamName, filters.closingBefore);
+          }
+          
+          const queryString = params.toString() ? `?${params.toString()}` : '';
+          const response = await fetch(`/api/stores${queryString}`);
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch stores');
+          }
+          
+          const data = await response.json();
+          setStores(data);
         }
         
-        if (filters.category && filters.category !== 'All Categories') {
-          params.append('category', filters.category);
-        }
-        
-        if (filters.minDiscount > 0 && (filters.storeType === 'closing' || filters.storeType === 'all')) {
-          params.append('minDiscount', filters.minDiscount.toString());
-        }
-        
-        if (filters.closingBefore) {
-          // Adapt parameter name based on store type
-          const dateParamName = filters.storeType === 'opening' ? 'openingBefore' : 'closingBefore';
-          params.append(dateParamName, filters.closingBefore);
-        }
-        
-        const queryString = params.toString() ? `?${params.toString()}` : '';
-        const response = await fetch(`/api/stores${queryString}`);
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch stores');
-        }
-        
-        const data = await response.json();
-        setStores(data);
         setError(null);
       } catch (err) {
         console.error('Error fetching stores:', err);
@@ -127,12 +145,10 @@ export default function StoreMapView({ filters }: StoreMapViewProps) {
     geocodeAddress(manualAddress);
   };
 
-  // Helper function to determine if a store is an opening store
   const isOpeningStore = (store: StoreData): boolean => {
     return store.storeType === 'opening';
   };
 
-  // Handle clicks outside of suggestions dropdown to close it
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
@@ -155,6 +171,24 @@ export default function StoreMapView({ filters }: StoreMapViewProps) {
         </div>
       )}
       
+      {/* Search results summary */}
+      {filters.searchQuery && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-blue-900">
+                {loading ? 'Searching...' : `Found ${filteredStores.length} result${filteredStores.length !== 1 ? 's' : ''}`}
+              </p>
+              {!loading && filteredStores.length > 0 && (
+                <p className="text-sm text-blue-700">
+                  Showing stores matching "{filters.searchQuery}"
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <form onSubmit={handleGeocodeSubmit} className="flex gap-2">
           <div className="flex-1 relative address-input-container">
@@ -171,7 +205,6 @@ export default function StoreMapView({ filters }: StoreMapViewProps) {
               className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             
-            {/* Address suggestions dropdown */}
             {showSuggestions && addressSuggestions.length > 0 && (
               <div className="absolute z-50 w-full bg-white mt-1 border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
                 {addressSuggestions.map((suggestion, index) => (
@@ -219,7 +252,7 @@ export default function StoreMapView({ filters }: StoreMapViewProps) {
         <div className="h-full w-full bg-gray-100 flex items-center justify-center">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
-            <p>Loading stores...</p>
+            <p>{filters.searchQuery ? 'Searching stores...' : 'Loading stores...'}</p>
           </div>
         </div>
       ) : (
@@ -262,6 +295,16 @@ export default function StoreMapView({ filters }: StoreMapViewProps) {
                   <p><strong>Phone:</strong> {selectedStore.phone}</p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* No results message for search */}
+          {filters.searchQuery && filteredStores.length === 0 && !loading && (
+            <div className="mt-4 p-6 bg-gray-50 rounded-lg text-center">
+              <p className="text-gray-600 text-lg">No stores found for "{filters.searchQuery}"</p>
+              <p className="text-gray-500 text-sm mt-2">
+                Try searching for different terms like "electronics", "clothing", or specific store names.
+              </p>
             </div>
           )}
         </>
