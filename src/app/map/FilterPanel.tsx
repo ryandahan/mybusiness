@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Filter, Tag, Calendar, MapPin, Search } from 'lucide-react';
 
 // Define the props type with searchQuery added
@@ -45,8 +45,42 @@ const storeCategories = [
 ];
 
 const FilterPanel: React.FC<FilterPanelProps> = ({ filters, setFilters }) => {
+  // Local state for the search input - only updates filters when button is clicked
+  const [localSearchQuery, setLocalSearchQuery] = useState(filters.searchQuery);
+
+  // Update local search when filters.searchQuery changes from external sources
+  useEffect(() => {
+    setLocalSearchQuery(filters.searchQuery);
+  }, [filters.searchQuery]);
+
+  // Handle search submission
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
+    
+    // Only search if query has 2+ characters or is empty (to clear search)
+    if (localSearchQuery.trim().length >= 2 || localSearchQuery.trim().length === 0) {
+      console.log('[FilterPanel] Manual search triggered:', localSearchQuery);
+      setFilters(prev => ({
+        ...prev,
+        searchQuery: localSearchQuery.trim()
+      }));
+    }
+  };
+
+  // Handle Enter key in search input
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSearchSubmit();
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    
+    // Handle all non-search filters normally (immediate update)
     setFilters(prev => ({
       ...prev,
       [name]: value
@@ -68,14 +102,29 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, setFilters }) => {
               <Search size={16} className="mr-2 text-gray-500" />
               Search in Map
             </label>
-            <input
-              type="text"
-              name="searchQuery"
-              value={filters.searchQuery}
-              onChange={handleChange}
-              placeholder="Search stores, categories, items..."
-              className="w-full p-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
-            />
+            <form onSubmit={handleSearchSubmit} className="flex gap-2">
+              <input
+                type="text"
+                name="searchQuery"
+                value={localSearchQuery}
+                onChange={(e) => setLocalSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                placeholder="Search stores, categories, items..."
+                className="flex-1 p-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+              />
+              <button
+                type="submit"
+                disabled={localSearchQuery.trim().length < 2 && localSearchQuery.trim().length !== 0}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-medium"
+              >
+                Search
+              </button>
+            </form>
+            {localSearchQuery.trim().length > 0 && localSearchQuery.trim().length < 2 && (
+              <div className="mt-1 text-xs text-gray-500">
+                Enter at least 2 characters to search
+              </div>
+            )}
           </div>
         )}
 
