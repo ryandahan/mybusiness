@@ -304,24 +304,24 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Social Proof & Urgency Stats */}
-      <div ref={statsRef} className="bg-gradient-to-r from-gray-900 to-black py-16 text-white">
+      {/* Social Proof & Urgency Stats - CHANGED TO WHITE BACKGROUND */}
+      <div ref={statsRef} className="bg-gray-50 py-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold mb-2">Join Thousands of Smart Shoppers</h2>
-            <p className="text-gray-300">Real results from real people</p>
+            <h2 className="text-2xl font-bold mb-2 text-gray-900">Join Thousands of Smart Shoppers</h2>
+            <p className="text-gray-600">Real results from real people</p>
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {stats.map((stat, index) => (
-              <div key={index} className="text-center transform hover:scale-110 transition-transform duration-300 bg-gray-800 rounded-lg p-6">
-                <div className="inline-flex items-center justify-center bg-gray-700 p-4 rounded-full shadow-lg mb-4">
+              <div key={index} className="text-center transform hover:scale-110 transition-transform duration-300 bg-white rounded-lg p-6 shadow-lg border">
+                <div className="inline-flex items-center justify-center bg-gray-100 p-4 rounded-full shadow-lg mb-4">
                   {stat.icon}
                 </div>
-                <div className="text-3xl md:text-4xl font-black text-orange-400">
+                <div className="text-3xl md:text-4xl font-black text-orange-500">
                   {countersVisible ? counters[index] : 0}{stat.suffix || ''}
                 </div>
-                <div className="text-gray-300 mt-1 font-medium">{stat.label}</div>
+                <div className="text-gray-700 mt-1 font-medium">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -685,7 +685,7 @@ export default function Home() {
         </div>
       </section>
       
-      {/* Footer */}
+      {/* Footer - REMOVED EXTRA WHITE SECTION */}
       <footer className="bg-gray-900 text-white pt-16 pb-8">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-8">
