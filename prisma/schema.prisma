@@ -19,6 +19,7 @@ model Store {
   email                String
   website              String?
   closingDate          DateTime?
+  promotionEndDate     DateTime?    // Added for promotion end dates
   discountPercentage   Int?
   inventoryDescription String
   ownerName            String
@@ -94,6 +95,8 @@ model StoreTip {
   storeType          String          @default("closing")  // Will support 'online' too
   isOnlineStore      Boolean         @default(false)     // New field for online stores
   website            String?         // New field for online store URLs
+  openingDate        DateTime?       // Added for opening stores
+  promotionEndDate   DateTime?       // Added for promotion end dates
   images             StoreTipImage[]
 
   @@index([isOnlineStore])  // New index for filtering online store tips

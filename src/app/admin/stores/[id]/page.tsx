@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle, XCircle, Phone, Mail, Calendar, Tag, MapPin, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, Phone, Mail, Calendar, Tag, MapPin, Image as ImageIcon, Globe } from 'lucide-react';
 import DocumentViewer from '@/components/DocumentViewer';
 
 interface StoreDetails {
@@ -42,6 +42,7 @@ interface StoreDetails {
   submitterEmail?: string;
   notes?: string;
   promotionEndDate?: string;
+  isOnlineStore?: boolean;
 }
 
 export default function StoreDetailPage() {
@@ -172,6 +173,7 @@ export default function StoreDetailPage() {
   }
 
   const isOpeningStore = store.storeType === 'opening';
+  const isOnlineStore = store.storeType === 'online' || store.isOnlineStore;
   const isShopperSubmission = store.isStoreTip === true;
   const businessName = store.businessName || store.storeName || '';
 
@@ -207,31 +209,56 @@ export default function StoreDetailPage() {
         <div className="mb-4">
           <h1 className="text-2xl font-bold">{businessName}</h1>
           <p className="text-gray-500">{store.category}</p>
-          {isShopperSubmission && (
-            <div className="mt-2 bg-blue-50 text-blue-800 px-3 py-1 rounded inline-block">
-              Submitted by Shopper
-            </div>
-          )}
+          <div className="flex gap-2 mt-2">
+            {isShopperSubmission && (
+              <div className="bg-blue-50 text-blue-800 px-3 py-1 rounded inline-block">
+                Submitted by Shopper
+              </div>
+            )}
+            {isOnlineStore && (
+              <div className="bg-purple-50 text-purple-800 px-3 py-1 rounded inline-block">
+                Online Store
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
             <h2 className="text-lg font-semibold mb-3">Store Information</h2>
             <div className="space-y-3">
-              <div className="flex">
-                <MapPin size={18} className="text-gray-500 mr-2 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium">Address</p>
-                  <a 
-                    href={getGoogleMapsUrl(store.address, store.city, store.state, store.zipCode)} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="text-blue-600 hover:underline"
-                  >
-                    {store.address}, {store.city}, {store.state} {store.zipCode}
-                  </a>
+              {/* Show website for online stores, address for physical stores */}
+              {isOnlineStore && store.website ? (
+                <div className="flex">
+                  <Globe size={18} className="text-gray-500 mr-2 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Website</p>
+                    <a 
+                      href={store.website} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-blue-600 hover:underline"
+                    >
+                      {store.website}
+                    </a>
+                  </div>
                 </div>
-              </div>
+              ) : !isOnlineStore && store.address && (
+                <div className="flex">
+                  <MapPin size={18} className="text-gray-500 mr-2 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Address</p>
+                    <a 
+                      href={getGoogleMapsUrl(store.address, store.city, store.state, store.zipCode)} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-blue-600 hover:underline"
+                    >
+                      {store.address}, {store.city}, {store.state} {store.zipCode}
+                    </a>
+                  </div>
+                </div>
+              )}
               
               {!isShopperSubmission && store.phone ? (
                 <>
@@ -251,9 +278,10 @@ export default function StoreDetailPage() {
                     </div>
                   </div>
 
-                  {store.website && (
+                  {/* Show website for physical stores if available */}
+                  {!isOnlineStore && store.website && (
                     <div className="flex">
-                      <div className="text-gray-500 mr-2 flex-shrink-0 mt-0.5">🌐</div>
+                      <Globe size={18} className="text-gray-500 mr-2 flex-shrink-0 mt-0.5" />
                       <div>
                         <p className="font-medium">Website</p>
                         <a href={store.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
@@ -281,7 +309,7 @@ export default function StoreDetailPage() {
 
           <div>
             <h2 className="text-lg font-semibold mb-3">
-              {isOpeningStore ? "Opening Details" : "Closing Details"}
+              {isOpeningStore ? "Opening Details" : isOnlineStore ? "Promotion Details" : "Closing Details"}
             </h2>
             <div className="space-y-3">
               {isOpeningStore ? (
@@ -307,12 +335,44 @@ export default function StoreDetailPage() {
                     </div>
                   )}
                   
-                  {isOpeningStore && store.promotionEndDate && (
+                  {store.promotionEndDate && (
                     <div className="flex">
                       <Calendar size={18} className="text-gray-500 mr-2 flex-shrink-0 mt-0.5" />
                       <div>
                         <p className="font-medium">Promotion Ends</p>
                         <p className="text-orange-600 font-medium">{new Date(store.promotionEndDate).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {store.specialOffers && (
+                    <div>
+                      <p className="font-medium">Special Offers</p>
+                      <p className="mt-1 bg-gray-50 p-3 rounded-md">{store.specialOffers}</p>
+                    </div>
+                  )}
+                </>
+              ) : isOnlineStore ? (
+                // Online store details
+                <>
+                  {store.discountPercentage && (
+                    <div className="flex">
+                      <Tag size={18} className="text-gray-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Discount</p>
+                        <p className="text-green-600 font-bold">{store.discountPercentage}% OFF</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {(store.promotionEndDate || store.closingDate) && (
+                    <div className="flex">
+                      <Calendar size={18} className="text-gray-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Promotion Ends</p>
+                        <p className="text-orange-600 font-medium">
+                          {new Date(store.promotionEndDate || store.closingDate || '').toLocaleDateString()}
+                        </p>
                       </div>
                     </div>
                   )}
@@ -352,13 +412,13 @@ export default function StoreDetailPage() {
               {store.inventoryDescription && (
                 <div>
                   <p className="font-medium">
-                    {isOpeningStore ? "Business Description" : "Inventory Description"}
+                    {isOpeningStore ? "Business Description" : isOnlineStore ? "Promotion Description" : "Inventory Description"}
                   </p>
                   <p className="mt-1 bg-gray-50 p-3 rounded-md">{store.inventoryDescription}</p>
                 </div>
               )}
 
-              {(isOpeningStore && store.reasonForTransition) || (!isOpeningStore && store.reasonForClosing) ? (
+              {(isOpeningStore && store.reasonForTransition) || (!isOpeningStore && !isOnlineStore && store.reasonForClosing) ? (
                 <div>
                   <p className="font-medium">
                     Reason for {isOpeningStore ? "Opening" : "Closing"}

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import Navbar from '@/components/Navbar';
-import { MapPin, Calendar, Tag, Phone, Mail, Edit, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MapPin, Calendar, Tag, Phone, Mail, Edit, ChevronLeft, ChevronRight, Globe, ExternalLink } from 'lucide-react';
 
 interface StoreImage {
   id: string;
@@ -23,6 +23,7 @@ interface Store {
   email: string;
   website?: string | null;
   storeType?: string;
+  isOnlineStore?: boolean;
   closingDate?: string;
   openingDate?: string;
   discountPercentage: number;
@@ -120,6 +121,7 @@ export function StoreDetailContent({ id }: { id: string }) {
   );
 
   const isOpeningStore = store.storeType === 'opening';
+  const isOnlineStore = store.isOnlineStore || store.storeType === 'online';
   const relevantDate = isOpeningStore
     ? (store.openingDate ? new Date(store.openingDate).toLocaleDateString() : 'Not specified')
     : (store.closingDate ? new Date(store.closingDate).toLocaleDateString() : 'Not specified');
@@ -170,73 +172,146 @@ export function StoreDetailContent({ id }: { id: string }) {
               <div>
                 <h1 className="text-3xl font-bold">{store.businessName}</h1>
                 <p className="text-gray-600">{store.category}</p>
+                {isOnlineStore && (
+                  <div className="mt-2 inline-flex items-center bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                    <Globe size={16} className="mr-1" />
+                    Online Store
+                  </div>
+                )}
               </div>
               <div className={`px-3 py-1 rounded-full text-sm font-medium ${
                 isOpeningStore 
                   ? 'bg-green-100 text-green-800' 
-                  : 'bg-red-100 text-red-800'
+                  : isOnlineStore
+                    ? 'bg-blue-100 text-blue-800'
+                    : 'bg-red-100 text-red-800'
               }`}>
-                {isOpeningStore ? 'Opening Soon' : 'Closing Soon'}
+                {isOpeningStore ? 'Opening Soon' : isOnlineStore ? 'Online Promotion' : 'Closing Soon'}
               </div>
             </div>
             
             <div className="grid md:grid-cols-2 gap-8">
               <div>
-                <h2 className="text-xl font-semibold mb-4">Location & Contact</h2>
+                <h2 className="text-xl font-semibold mb-4">
+                  {isOnlineStore ? 'Website & Contact' : 'Location & Contact'}
+                </h2>
                 <div className="space-y-3">
-                  <div className="flex items-start">
-                    <MapPin className="text-gray-500 mr-2 mt-1 flex-shrink-0" size={18} />
-                    <span>{store.address}, {store.city}, {store.state} {store.zipCode}</span>
-                  </div>
+                  {isOnlineStore ? (
+                    // Show website for online stores
+                    <>
+                      {store.website && (
+                        <div className="flex items-start">
+                          <Globe className="text-gray-500 mr-2 mt-1 flex-shrink-0" size={18} />
+                          <div>
+                            <p className="font-medium text-gray-700">Website</p>
+                            <a 
+                              href={store.website} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 hover:underline flex items-center"
+                            >
+                              {store.website.replace(/^https?:\/\//, '')}
+                              <ExternalLink size={14} className="ml-1" />
+                            </a>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    // Show address for physical stores
+                    <div className="flex items-start">
+                      <MapPin className="text-gray-500 mr-2 mt-1 flex-shrink-0" size={18} />
+                      <div>
+                        <p className="font-medium text-gray-700">Address</p>
+                        <span>{store.address}, {store.city}, {store.state} {store.zipCode}</span>
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="flex items-center">
                     <Phone className="text-gray-500 mr-2 flex-shrink-0" size={18} />
-                    <span>{store.phone}</span>
+                    <div>
+                      <p className="font-medium text-gray-700">Phone</p>
+                      <span>{store.phone}</span>
+                    </div>
                   </div>
                   
                   <div className="flex items-center">
                     <Mail className="text-gray-500 mr-2 flex-shrink-0" size={18} />
-                    <span>{store.email}</span>
+                    <div>
+                      <p className="font-medium text-gray-700">Email</p>
+                      <span>{store.email}</span>
+                    </div>
                   </div>
 
-                  {store.website && (
-                    <a href={store.website} target="_blank" rel="noopener noreferrer" 
-                      className="block text-blue-600 hover:underline">
-                      Visit Website
-                    </a>
+                  {/* Show website for physical stores that also have a website */}
+                  {!isOnlineStore && store.website && (
+                    <div className="flex items-center">
+                      <Globe className="text-gray-500 mr-2 flex-shrink-0" size={18} />
+                      <div>
+                        <p className="font-medium text-gray-700">Website</p>
+                        <a 
+                          href={store.website} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-blue-600 hover:text-blue-800 hover:underline flex items-center"
+                        >
+                          {store.website.replace(/^https?:\/\//, '')}
+                          <ExternalLink size={14} className="ml-1" />
+                        </a>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
               
               <div>
                 <h2 className="text-xl font-semibold mb-4">
-                  {isOpeningStore ? 'Opening Details' : 'Closing Details'}
+                  {isOpeningStore ? 'Opening Details' : isOnlineStore ? 'Promotion Details' : 'Closing Details'}
                 </h2>
                 <div className="space-y-3">
                   <div className="flex items-center">
                     <Calendar className="text-gray-500 mr-2 flex-shrink-0" size={18} />
-                    <span>
-                      {isOpeningStore ? 'Opening' : 'Closing'} Date: <strong>{relevantDate}</strong>
-                    </span>
+                    <div>
+                      <p className="font-medium text-gray-700">
+                        {isOpeningStore 
+                          ? 'Opening Date' 
+                          : isOnlineStore 
+                            ? 'Promotion Ends' 
+                            : 'Closing Date'}
+                      </p>
+                      <span><strong>{relevantDate}</strong></span>
+                    </div>
                   </div>
                   
                   <div className="flex items-center">
                     <Tag className="text-gray-500 mr-2 flex-shrink-0" size={18} />
-                    <span>Discount: <strong className="text-red-600">{store.discountPercentage}% OFF</strong></span>
+                    <div>
+                      <p className="font-medium text-gray-700">
+                        {isOnlineStore ? 'Current Discount' : 'Discount'}
+                      </p>
+                      <span className="text-red-600 font-bold">{store.discountPercentage}% OFF</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
             
             <div className="mt-6">
-              <h2 className="text-xl font-semibold mb-2">Inventory Description</h2>
+              <h2 className="text-xl font-semibold mb-2">
+                {isOnlineStore ? 'Business Description' : 'Inventory Description'}
+              </h2>
               <p className="bg-gray-50 p-4 rounded-md">{store.inventoryDescription}</p>
             </div>
 
             {store.reasonForClosing && (
               <div className="mt-6">
                 <h2 className="text-xl font-semibold mb-2">
-                  {isOpeningStore ? 'Description' : 'Reason for Closing'}
+                  {isOpeningStore 
+                    ? 'About This Business' 
+                    : isOnlineStore 
+                      ? 'About This Business'
+                      : 'Reason for Closing'}
                 </h2>
                 <p className="bg-gray-50 p-4 rounded-md">{store.reasonForClosing}</p>
               </div>

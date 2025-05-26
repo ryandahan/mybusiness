@@ -12,12 +12,14 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const storeName = formData.get('storeName') as string;
     const category = formData.get('category') as string;
-    const address = formData.get('address') as string;
-    const city = formData.get('city') as string;
-    const state = formData.get('state') as string;
-    const zipCode = formData.get('zipCode') as string;
+    const address = formData.get('address') as string || '';
+    const city = formData.get('city') as string || '';
+    const state = formData.get('state') as string || '';
+    const zipCode = formData.get('zipCode') as string || '';
     const submitterEmail = formData.get('submitterEmail') as string;
     const storeType = formData.get('storeType') as string || 'closing';
+    const isOnlineStore = formData.get('isOnlineStore') === 'true';
+    const website = formData.get('website') as string || null;
     
     const discountPercentageValue = formData.get('discountPercentage');
     const openingDate = formData.get('openingDate') as string;
@@ -32,22 +34,25 @@ export async function POST(req: NextRequest) {
       storeImageUrl = await uploadFile(storeImage, 'store-tip-images');
     }
     
-    // Get coordinates with geocoding
-    let coordinates = { latitude: 40.7128, longitude: -74.0060 }; // Default coordinates
-    try {
-      const fullAddress = `${address}, ${city}, ${state} ${zipCode}`.trim();
-      const geocodeResult = await getGeocode(fullAddress);
-      coordinates = {
-        latitude: geocodeResult.latitude,
-        longitude: geocodeResult.longitude
-      };
-      
-      // Check if default coordinates were used (if the property exists)
-      if ('isDefault' in geocodeResult && geocodeResult.isDefault) {
-        console.log(`Using default coordinates for address: ${fullAddress}`);
+    // Get coordinates with geocoding (only for physical stores)
+    let coordinates = { latitude: null as number | null, longitude: null as number | null };
+    
+    if (!isOnlineStore && address && city && state && zipCode) {
+      try {
+        const fullAddress = `${address}, ${city}, ${state} ${zipCode}`.trim();
+        const geocodeResult = await getGeocode(fullAddress);
+        coordinates = {
+          latitude: geocodeResult.latitude,
+          longitude: geocodeResult.longitude
+        };
+        
+        // Check if default coordinates were used (if the property exists)
+        if ('isDefault' in geocodeResult && geocodeResult.isDefault) {
+          console.log(`Using default coordinates for address: ${fullAddress}`);
+        }
+      } catch (geoError) {
+        console.error('Failed to geocode address, using null coordinates:', geoError);
       }
-    } catch (geoError) {
-      console.error('Failed to geocode address, using default coordinates:', geoError);
     }
     
     // Additional data to store in notes field
@@ -69,16 +74,18 @@ export async function POST(req: NextRequest) {
     const tipData: any = {
       storeName,
       category,
-      address,
-      city,
-      state,
-      zipCode,
+      address: address || null,
+      city: city || null,
+      state: state || null,
+      zipCode: zipCode || null,
       submitterEmail,
       storeImageUrl,
       latitude: coordinates.latitude,
       longitude: coordinates.longitude,
       status: 'pending',
       storeType,
+      isOnlineStore,
+      website,  // Now properly included
       notes: Object.keys(additionalData).length > 0 ? JSON.stringify(additionalData) : null
     };
     

@@ -14,6 +14,7 @@ export interface StoreData {
   storeType?: 'opening' | 'closing' | 'online';  // Added 'online' type
   closingDate?: string;
   openingDate?: string;
+  promotionEndDate?: string;
   discountPercentage?: number | null;
   specialOffers?: string;
   inventoryDescription: string;
@@ -44,6 +45,7 @@ export interface Store {
   storeType?: 'opening' | 'closing' | 'online';  // Added 'online' type
   closingDate?: string;
   openingDate?: string;
+  promotionEndDate?: string;  // ADDED THIS LINE
   discountPercentage?: number | null;
   isApproved: boolean;
   isFeatured?: boolean;
@@ -69,6 +71,7 @@ export interface StoreTip {
   submitterEmail: string;
   storeType?: 'opening' | 'closing' | 'online';  // Added 'online' type
   openingDate?: string;
+  promotionEndDate?: string;  // ADDED THIS LINE
   discountPercentage?: number | null;
   specialOffers?: string;
   storeImageUrl?: string | null;
@@ -107,6 +110,7 @@ export interface StoreFormData {
   // Type-specific fields
   closingDate?: string;
   openingDate?: string;
+  promotionEndDate?: string;  // ADDED THIS LINE
   discountPercentage?: number;
   specialOffers?: string;
   reasonForTransition?: string;
@@ -153,6 +157,7 @@ export interface StoreValidationErrors {
   contactPreference?: string;
   closingDate?: string;
   openingDate?: string;
+  promotionEndDate?: string;  // ADDED THIS LINE
   discountPercentage?: string;
   general?: string;
 }

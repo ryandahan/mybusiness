@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Search, MapPin, Tag, Store, DollarSign, AlertCircle, PlusCircle, User, Info, Mail, ChevronLeft, ChevronRight, ShoppingCart, TrendingUp, Percent, ArrowRight, Clock, Star, Shield, Zap, Gift } from 'lucide-react';
+import { Search, MapPin, Tag, Store, DollarSign, AlertCircle, PlusCircle, User, Info, Mail, ChevronLeft, ChevronRight, ShoppingCart, TrendingUp, Percent, ArrowRight, Clock, Star, Shield, Zap, Gift, Globe, ExternalLink } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import SearchComponent from '@/components/SearchComponent';
 
@@ -10,8 +10,9 @@ interface FeaturedStore {
   id: string;
   businessName: string;
   category: string;
-  city: string;
-  state: string;
+  city?: string;
+  state?: string;
+  website?: string;
   discountPercentage: number | null;
   specialOffers: string | null;
   storeImageUrl?: string | null;
@@ -19,6 +20,7 @@ interface FeaturedStore {
   storeType: string;
   openingDate?: string | null;
   closingDate?: string | null;
+  isOnlineStore?: boolean;
 }
 
 // Updated realistic stats that create urgency and social proof
@@ -53,7 +55,7 @@ const testimonials = [
 
 export default function Home() {
   const [featuredStores, setFeaturedStores] = useState<FeaturedStore[]>([]);
-  const [activeTab, setActiveTab] = useState<'closing' | 'opening'>('closing');
+  const [activeTab, setActiveTab] = useState<'closing' | 'opening' | 'online'>('closing');
   const [loading, setLoading] = useState(true);
   const sliderRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -179,7 +181,7 @@ export default function Home() {
         slider.removeEventListener('scroll', checkScroll);
       }
     };
-  }, [featuredStores]);
+  }, [featuredStores, activeTab]);
 
   const scrollLeft = () => {
     if (sliderRef.current) {
@@ -193,9 +195,12 @@ export default function Home() {
     }
   };
 
-  const filteredStores = featuredStores.filter(store => 
-    store.storeType === activeTab
-  );
+  const filteredStores = featuredStores.filter(store => {
+    if (activeTab === 'online') {
+      return store.storeType === 'online' || store.isOnlineStore === true;
+    }
+    return store.storeType === activeTab;
+  });
 
   return (
     <main className="flex min-h-screen flex-col">
@@ -257,7 +262,7 @@ export default function Home() {
             </h1>
             
             <p className="text-xl md:text-2xl mb-8 animate-slide-up opacity-90 max-w-3xl mx-auto">
-              Discover massive discounts at closing stores and exclusive grand opening deals. 
+              Discover massive discounts at closing stores, online deals, and exclusive grand opening offers. 
               <span className="font-bold text-yellow-300"> Act fast - these deals won't last!</span>
             </p>
             
@@ -502,6 +507,12 @@ export default function Home() {
               >
                 🎉 Grand Openings
               </button>
+              <button 
+                onClick={() => setActiveTab('online')}
+                className={`px-6 py-3 rounded-full font-bold transition-all duration-300 ${activeTab === 'online' ? 'bg-blue-500 text-white shadow-lg' : 'text-gray-600 hover:bg-gray-200'}`}
+              >
+                🌐 Online Deals
+              </button>
             </div>
           </div>
           
@@ -525,80 +536,102 @@ export default function Home() {
                 className="flex overflow-x-auto pb-8 scrollbar-hide gap-6 scroll-smooth"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
-                {filteredStores.map((store) => (
-                  <div key={store.id} className="flex-shrink-0 w-80">
-                    <Link href={`/stores/${store.id}`} className="block group">
-                      <div className="bg-white rounded-2xl overflow-hidden shadow-lg transition-all duration-300 hover:shadow-2xl transform group-hover:-translate-y-2 h-full border border-gray-100 relative">
-                        {/* Urgency Badge */}
-                        <div className="absolute top-3 left-3 bg-red-500 text-white px-3 py-1 rounded-full font-bold text-xs z-10 animate-pulse">
-                          ENDING SOON
-                        </div>
-                        
-                        <div className="relative h-48 bg-gray-200 overflow-hidden">
-                          {(store.storeImages && store.storeImages.length > 0) ? (
-                            <img 
-                              src={store.storeImages[0]} 
-                              alt={store.businessName || 'Store image'} 
-                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                            />
-                          ) : store.storeImageUrl ? (
-                            <img 
-                              src={store.storeImageUrl} 
-                              alt={store.businessName || 'Store image'} 
-                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                              <Store size={48} className="text-gray-400" />
-                            </div>
-                          )}
-                          
-                          <div className={`absolute top-3 right-3 ${activeTab === 'closing' ? 'bg-red-500' : 'bg-green-500'} text-white px-4 py-2 rounded-full font-black shadow-lg`}>
-                            {activeTab === 'closing' 
-                              ? `${store.discountPercentage ?? 'UP TO 90'}% OFF` 
-                              : 'GRAND OPENING'}
-                          </div>
-                        </div>
-                        
-                        <div className="p-6">
-                          <h3 className="font-bold text-xl mb-2 group-hover:text-orange-600 transition-colors">
-                            {store.businessName}
-                          </h3>
-                          <div className="flex items-center text-gray-500 mb-2">
-                            <Tag size={14} className="mr-1 text-orange-500" />
-                            <span>{store.category}</span>
-                          </div>
-                          <div className="flex items-center text-gray-500 mb-4">
-                            <MapPin size={14} className="mr-1 text-orange-500" />
-                            <span>{store.city}, {store.state}</span>
+                {filteredStores.map((store) => {
+                  const isOnline = store.isOnlineStore || store.storeType === 'online';
+                  return (
+                    <div key={store.id} className="flex-shrink-0 w-80">
+                      <Link href={`/stores/${store.id}`} className="block group">
+                        <div className="bg-white rounded-2xl overflow-hidden shadow-lg transition-all duration-300 hover:shadow-2xl transform group-hover:-translate-y-2 h-full border border-gray-100 relative">
+                          {/* Urgency Badge */}
+                          <div className="absolute top-3 left-3 bg-red-500 text-white px-3 py-1 rounded-full font-bold text-xs z-10 animate-pulse">
+                            {isOnline ? 'LIMITED TIME' : 'ENDING SOON'}
                           </div>
                           
-                          <div className="mb-4">
-                            {activeTab === 'closing' ? (
-                              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                                <p className="text-red-600 font-bold text-sm">⏰ CLOSING: {new Date(store.closingDate as string).toLocaleDateString()}</p>
-                              </div>
+                          <div className="relative h-48 bg-gray-200 overflow-hidden">
+                            {(store.storeImages && store.storeImages.length > 0) ? (
+                              <img 
+                                src={store.storeImages[0]} 
+                                alt={store.businessName || 'Store image'} 
+                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                              />
+                            ) : store.storeImageUrl ? (
+                              <img 
+                                src={store.storeImageUrl} 
+                                alt={store.businessName || 'Store image'} 
+                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                              />
                             ) : (
-                              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                                <p className="text-green-600 font-bold text-sm">🎉 OPENING: {new Date(store.openingDate as string).toLocaleDateString()}</p>
+                              <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                                {isOnline ? <Globe size={48} className="text-gray-400" /> : <Store size={48} className="text-gray-400" />}
                               </div>
                             )}
+                            
+                            <div className={`absolute top-3 right-3 ${
+                              activeTab === 'closing' ? 'bg-red-500' : 
+                              activeTab === 'opening' ? 'bg-green-500' : 
+                              'bg-blue-500'
+                            } text-white px-4 py-2 rounded-full font-black shadow-lg`}>
+                              {activeTab === 'opening' 
+                                ? 'GRAND OPENING'
+                                : store.discountPercentage 
+                                  ? `${store.discountPercentage}% OFF` 
+                                  : 'SPECIAL DEAL'}
+                            </div>
                           </div>
                           
-                          <div className="flex justify-between items-center">
-                            <span className="inline-flex items-center text-orange-600 font-bold group-hover:underline">
-                              View Deal
-                              <ArrowRight size={16} className="ml-1 transition-transform duration-300 group-hover:translate-x-1" />
-                            </span>
-                            <div className="text-xs text-gray-500">
-                              👥 12 people viewing
+                          <div className="p-6">
+                            <h3 className="font-bold text-xl mb-2 group-hover:text-orange-600 transition-colors">
+                              {store.businessName}
+                            </h3>
+                            <div className="flex items-center text-gray-500 mb-2">
+                              <Tag size={14} className="mr-1 text-orange-500" />
+                              <span>{store.category}</span>
+                            </div>
+                            <div className="flex items-center text-gray-500 mb-4">
+                              {isOnline ? (
+                                <>
+                                  <Globe size={14} className="mr-1 text-orange-500" />
+                                  <span>Online Store</span>
+                                </>
+                              ) : (
+                                <>
+                                  <MapPin size={14} className="mr-1 text-orange-500" />
+                                  <span>{store.city}, {store.state}</span>
+                                </>
+                              )}
+                            </div>
+                            
+                            <div className="mb-4">
+                              {activeTab === 'closing' ? (
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                  <p className="text-red-600 font-bold text-sm">⏰ CLOSING: {new Date(store.closingDate as string).toLocaleDateString()}</p>
+                                </div>
+                              ) : activeTab === 'opening' ? (
+                                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                  <p className="text-green-600 font-bold text-sm">🎉 OPENING: {new Date(store.openingDate as string).toLocaleDateString()}</p>
+                                </div>
+                              ) : (
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                  <p className="text-blue-600 font-bold text-sm">🌐 PROMOTION ENDS: {store.closingDate ? new Date(store.closingDate as string).toLocaleDateString() : 'Soon'}</p>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="flex justify-between items-center">
+                              <span className="inline-flex items-center text-orange-600 font-bold group-hover:underline">
+                                {isOnline ? 'Shop Now' : 'View Deal'}
+                                <ArrowRight size={16} className="ml-1 transition-transform duration-300 group-hover:translate-x-1" />
+                              </span>
+                              <div className="text-xs text-gray-500">
+                                👥 {Math.floor(Math.random() * 20) + 5} people viewing
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </Link>
-                  </div>
-                ))}
+                      </Link>
+                    </div>
+                  );
+                })}
               </div>
               
               {canScrollRight && (

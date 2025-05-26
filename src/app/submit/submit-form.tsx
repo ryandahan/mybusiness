@@ -23,6 +23,7 @@ interface FormData {
   openingDate: string;
   discountPercentage: string;
   specialOffers: string;
+  promotionCode: string;  // Added promotion code field
   inventoryDescription: string;
   reasonForTransition: string;
   ownerName: string;
@@ -49,6 +50,7 @@ interface GuestTipData {
   isOnlineStore: boolean;  // Added for online store flag
   openingDate: string;
   specialOffers: string;
+  promotionCode: string;  // Added promotion code field
   promotionEndDate: string;
 }
 
@@ -75,6 +77,7 @@ export default function Submitform() {
     openingDate: '',
     discountPercentage: '',
     specialOffers: '',
+    promotionCode: '',  // Added promotion code field
     inventoryDescription: '',
     reasonForTransition: '',
     ownerName: '',
@@ -101,6 +104,7 @@ export default function Submitform() {
     isOnlineStore: initialStoreType === 'online',  // Auto-set for online stores
     openingDate: '',
     specialOffers: '',
+    promotionCode: '',  // Added promotion code field
     promotionEndDate: ''
   });
   
@@ -386,6 +390,9 @@ export default function Submitform() {
         if (formData.discountPercentage) {
           submitData.append('discountPercentage', formData.discountPercentage);
         }
+        if (formData.promotionCode) {
+          submitData.append('promotionCode', formData.promotionCode);
+        }
       }
       
       submitData.append('inventoryDescription', formData.inventoryDescription);
@@ -506,9 +513,13 @@ export default function Submitform() {
       } else {
         submitData.append('openingDate', guestTipData.openingDate);
         submitData.append('specialOffers', guestTipData.specialOffers);
-        // Add discount percentage for opening stores
+        // Add discount percentage for opening/online stores
         if (guestTipData.discountPercentage) {
           submitData.append('discountPercentage', guestTipData.discountPercentage);
+        }
+        // Add promotion code if provided
+        if (guestTipData.promotionCode) {
+          submitData.append('promotionCode', guestTipData.promotionCode);
         }
         // Add promotion end date if provided
         if (guestTipData.promotionEndDate) {
@@ -626,6 +637,7 @@ export default function Submitform() {
                     openingDate: '',
                     discountPercentage: '',
                     specialOffers: '',
+                    promotionCode: '',
                     inventoryDescription: '',
                     reasonForTransition: '',
                     ownerName: '',
@@ -652,6 +664,7 @@ export default function Submitform() {
                     isOnlineStore: initialStoreType === 'online',
                     openingDate: '',
                     specialOffers: '',
+                    promotionCode: '',
                     promotionEndDate: ''
                   });
                 }
@@ -1046,23 +1059,118 @@ export default function Submitform() {
                   placeholder="Describe any opening specials or promotions..."
                 />
               </div>
+              
+              <div className="mb-4">
+                <label htmlFor="discountPercentage" className="block text-sm font-medium text-gray-700 mb-1">
+                  Discount Percentage (Optional)
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <Tag size={18} className="text-gray-500" />
+                  </div>
+                  <input
+                    type="number"
+                    id="discountPercentage"
+                    name="discountPercentage"
+                    value={guestTipData.discountPercentage}
+                    onChange={handleGuestTextChange}
+                    className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="e.g., 20"
+                    min={1}
+                    max={100}
+                  />
+                </div>
+              </div>
+              
+              <div className="mb-4">
+                <label htmlFor="promotionCode" className="block text-sm font-medium text-gray-700 mb-1">
+                  Promotion Code (Optional)
+                </label>
+                <input
+                  type="text"
+                  id="promotionCode"
+                  name="promotionCode"
+                  value={guestTipData.promotionCode}
+                  onChange={handleGuestTextChange}
+                  className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="e.g., SAVE20"
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label htmlFor="promotionEndDate" className="block text-sm font-medium text-gray-700 mb-1">
+                  Promotion End Date (Optional)
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <Calendar size={18} className="text-gray-500" />
+                  </div>
+                  <input
+                    type="date"
+                    id="promotionEndDate"
+                    name="promotionEndDate"
+                    value={guestTipData.promotionEndDate}
+                    onChange={handleGuestTextChange}
+                    className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
             </>
           ) : (
             // Online store specific fields
-            <div className="mb-4">
-              <label htmlFor="specialOffers" className="block text-sm font-medium text-gray-700 mb-1">
-                Current Promotions (Optional)
-              </label>
-              <textarea
-                id="specialOffers"
-                name="specialOffers"
-                value={guestTipData.specialOffers}
-                onChange={handleGuestTextChange}
-                rows={2}
-                className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Describe any current promotions or discounts..."
-              />
-            </div>
+            <>
+              <div className="mb-4">
+                <label htmlFor="specialOffers" className="block text-sm font-medium text-gray-700 mb-1">
+                  Current Promotions (Optional)
+                </label>
+                <textarea
+                  id="specialOffers"
+                  name="specialOffers"
+                  value={guestTipData.specialOffers}
+                  onChange={handleGuestTextChange}
+                  rows={2}
+                  className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Describe any current promotions or discounts..."
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label htmlFor="discountPercentage" className="block text-sm font-medium text-gray-700 mb-1">
+                  Current Discount Percentage (Optional)
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <Tag size={18} className="text-gray-500" />
+                  </div>
+                  <input
+                    type="number"
+                    id="discountPercentage"
+                    name="discountPercentage"
+                    value={guestTipData.discountPercentage}
+                    onChange={handleGuestTextChange}
+                    className="w-full p-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="e.g., 20"
+                    min={1}
+                    max={100}
+                  />
+                </div>
+              </div>
+              
+              <div className="mb-4">
+                <label htmlFor="promotionCode" className="block text-sm font-medium text-gray-700 mb-1">
+                  Promotion Code (Optional)
+                </label>
+                <input
+                  type="text"
+                  id="promotionCode"
+                  name="promotionCode"
+                  value={guestTipData.promotionCode}
+                  onChange={handleGuestTextChange}
+                  className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="e.g., SAVE20"
+                />
+              </div>
+            </>
           )}
           
           <div className="mb-4">
@@ -1585,6 +1693,21 @@ export default function Submitform() {
                       max={100}
                     />
                   </div>
+                </div>
+                
+                <div className="mb-4">
+                  <label htmlFor="promotionCode" className="block text-sm font-medium text-gray-700 mb-1">
+                    Promotion Code (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    id="promotionCode"
+                    name="promotionCode"
+                    value={formData.promotionCode}
+                    onChange={handleTextChange}
+                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="e.g., SAVE20"
+                  />
                 </div>
               </>
             )}

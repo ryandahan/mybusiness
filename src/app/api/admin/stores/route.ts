@@ -30,9 +30,12 @@ export async function GET(req: NextRequest) {
         category: true,
         city: true,
         state: true,
-        storeType: true,        // Added to properly determine store status
+        storeType: true,
         closingDate: true,
-        openingDate: true,      // Added to properly determine store status
+        openingDate: true,
+        promotionEndDate: true,
+        isOnlineStore: true,
+        website: true,
         discountPercentage: true,
         isApproved: true,
         isFeatured: true,
@@ -40,13 +43,15 @@ export async function GET(req: NextRequest) {
       }
     });
     
-    // Add source to stores
+    // Add source to stores and ensure storeType is 'online' for online stores
     const storesWithSource = stores.map(store => ({
       ...store,
+      // Normalize storeType for online stores
+      storeType: store.isOnlineStore ? 'online' : (store.storeType || 'closing'),
       source: 'owner'
     }));
     
-    // Also fetch pending store tips - FIXED to include discountPercentage
+    // Also fetch pending store tips
     const storeTips = status === 'pending' ? await prisma.storeTip.findMany({
       where: { status: 'pending' },
       orderBy: { createdAt: 'desc' },
@@ -57,8 +62,11 @@ export async function GET(req: NextRequest) {
         city: true,
         state: true,
         submitterEmail: true,
-        storeType: true,        // Added to properly determine store status
+        storeType: true,
         discountPercentage: true,
+        promotionEndDate: true,
+        isOnlineStore: true,
+        website: true,
         createdAt: true
       }
     }) : [];
@@ -70,9 +78,13 @@ export async function GET(req: NextRequest) {
       category: tip.category,
       city: tip.city,
       state: tip.state,
-      storeType: tip.storeType || 'closing',  // Include storeType
-      openingDate: null,        // StoreTip doesn't have openingDate field
+      // Normalize storeType for online stores
+      storeType: tip.isOnlineStore ? 'online' : (tip.storeType || 'closing'),
+      openingDate: null,
       closingDate: null,
+      promotionEndDate: tip.promotionEndDate,
+      isOnlineStore: tip.isOnlineStore,
+      website: tip.website,
       discountPercentage: tip.discountPercentage,
       isApproved: false,
       isFeatured: false,

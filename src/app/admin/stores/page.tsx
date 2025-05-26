@@ -3,11 +3,13 @@
 import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Check, X, Eye, Star, Edit } from 'lucide-react';
+import { Check, X, Eye, Star, Edit, Globe } from 'lucide-react';
 import { Store } from '@/types/store';
 
 interface AdminStore extends Store {
   isFeatured?: boolean;
+  isOnlineStore?: boolean;
+  promotionEndDate?: string; // Added promotion end date field
 }
 
 export default function AdminStoresPage() {
@@ -147,9 +149,14 @@ export default function AdminStoresPage() {
     router.push(`/stores/${id}/edit`);
   };
 
-  // Determine store status (opening or closing)
-  const getStoreStatus = (store: AdminStore): 'opening' | 'closing' => {
-    // First check storeType property (from database schema)
+  // Determine store status (opening, closing, or online)
+  const getStoreStatus = (store: AdminStore): 'opening' | 'closing' | 'online' => {
+    // Check if it's an online store
+    if (store.storeType === 'online' || store.isOnlineStore) {
+      return 'online';
+    }
+    
+    // Check storeType property
     if (store.storeType === 'opening') {
       return 'opening';
     }
@@ -161,6 +168,29 @@ export default function AdminStoresPage() {
     
     // Default to closing
     return 'closing';
+  };
+
+  // Get date label based on store type
+  const getDateLabel = (store: AdminStore): string => {
+    const status = getStoreStatus(store);
+    if (status === 'online') return 'Promotion Ends';
+    if (status === 'opening') return 'Opens';
+    return 'Closes';
+  };
+
+  // Get relevant date for store
+  const getRelevantDate = (store: AdminStore): string => {
+    const status = getStoreStatus(store);
+    
+    if (status === 'opening') {
+      return store.openingDate ? new Date(store.openingDate).toLocaleDateString() : 'Not specified';
+    } else if (status === 'online') {
+      // For online stores, use promotionEndDate
+      return store.promotionEndDate ? new Date(store.promotionEndDate).toLocaleDateString() : 'Not specified';
+    } else {
+      // For closing stores, use closingDate
+      return store.closingDate ? new Date(store.closingDate).toLocaleDateString() : 'Not specified';
+    }
   };
   
   // Handle different loading states
@@ -256,32 +286,45 @@ export default function AdminStoresPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {stores.map((store) => {
                 const storeStatus = getStoreStatus(store);
-                const relevantDate = storeStatus === 'opening'
-                  ? (store.openingDate ? new Date(store.openingDate).toLocaleDateString() : 'Not specified')
-                  : (store.closingDate ? new Date(store.closingDate).toLocaleDateString() : 'Not specified');
+                const isOnline = storeStatus === 'online';
                   
                 return (
                   <tr key={store.id} className={actionInProgress === store.id ? 'opacity-50' : ''}>
                     <td className="px-2 sm:px-4 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm">{store.businessName}</td>
                     <td className="px-2 sm:px-4 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm">{store.category}</td>
-                    <td className="px-2 sm:px-4 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm">{store.city}, {store.state}</td>
+                    <td className="px-2 sm:px-4 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm">
+                      {isOnline ? (
+                        <span className="flex items-center text-blue-600">
+                          <Globe size={14} className="mr-1" />
+                          Online
+                        </span>
+                      ) : (
+                        `${store.city}, ${store.state}`
+                      )}
+                    </td>
                     <td className="px-2 sm:px-4 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm">
                       <span className={`px-1 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium ${
                         storeStatus === 'opening' 
                           ? 'bg-green-100 text-green-800' 
+                          : storeStatus === 'online'
+                          ? 'bg-blue-100 text-blue-800'
                           : 'bg-red-100 text-red-800'
                       }`}>
-                        {storeStatus === 'opening' ? 'Opening' : 'Closing'}
+                        {storeStatus === 'opening' ? 'Opening' : storeStatus === 'online' ? 'Online' : 'Closing'}
                       </span>
                     </td>
                     <td className="px-2 sm:px-4 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm">
-                      {relevantDate}
+                      <div>
+                        <span className="text-gray-500 text-xs">{getDateLabel(store)}:</span>
+                        <br />
+                        {getRelevantDate(store)}
+                      </div>
                     </td>
                     <td className="px-2 sm:px-4 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm">
                       {store.discountPercentage || store.discountPercentage === 0 ? (
                         <span className="text-red-600 font-bold">{store.discountPercentage}%</span>
                       ) : (
-                        <span className="text-gray-500">Unspecified</span>
+                        <span className="text-gray-500">N/A</span>
                       )}
                     </td>
                     <td className="px-2 sm:px-4 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm">
