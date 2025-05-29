@@ -67,30 +67,46 @@ export async function GET(req: NextRequest) {
         promotionEndDate: true,
         isOnlineStore: true,
         website: true,
-        createdAt: true
+        createdAt: true,
+        notes: true  // Include notes to parse promotionEndDate
       }
     }) : [];
     
     // Format store tips to match store format for frontend
-    const formattedTips = storeTips.map(tip => ({
-      id: tip.id,
-      businessName: tip.storeName,
-      category: tip.category,
-      city: tip.city,
-      state: tip.state,
-      // Normalize storeType for online stores
-      storeType: tip.isOnlineStore ? 'online' : (tip.storeType || 'closing'),
-      openingDate: null,
-      closingDate: null,
-      promotionEndDate: tip.promotionEndDate,
-      isOnlineStore: tip.isOnlineStore,
-      website: tip.website,
-      discountPercentage: tip.discountPercentage,
-      isApproved: false,
-      isFeatured: false,
-      createdAt: tip.createdAt,
-      source: 'shopper'
-    }));
+    const formattedTips = storeTips.map(tip => {
+      // Parse promotionEndDate from notes if it exists
+      let promotionEndDate = tip.promotionEndDate;
+      if (!promotionEndDate && tip.notes) {
+        try {
+          const notesData = JSON.parse(tip.notes);
+          if (notesData.promotionEndDate) {
+            promotionEndDate = new Date(notesData.promotionEndDate);
+          }
+        } catch (e) {
+          // Ignore JSON parse errors
+        }
+      }
+      
+      return {
+        id: tip.id,
+        businessName: tip.storeName,
+        category: tip.category,
+        city: tip.city,
+        state: tip.state,
+        // Normalize storeType for online stores
+        storeType: tip.isOnlineStore ? 'online' : (tip.storeType || 'closing'),
+        openingDate: null,
+        closingDate: null,
+        promotionEndDate: promotionEndDate,
+        isOnlineStore: tip.isOnlineStore,
+        website: tip.website,
+        discountPercentage: tip.discountPercentage,
+        isApproved: false,
+        isFeatured: false,
+        createdAt: tip.createdAt,
+        source: 'shopper'
+      };
+    });
     
     // Combine both data sets
     const combinedResults = [...storesWithSource, ...formattedTips];

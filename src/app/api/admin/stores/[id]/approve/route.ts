@@ -1,4 +1,3 @@
-// C:\Users\Raeean\store-transitions\src\app\api\admin\stores\[id]\approve\route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { PrismaClient } from '@prisma/client';
@@ -35,6 +34,28 @@ export async function PUT(
         discountValue = storeTip.discountPercentage;
       }
       
+      // Parse promotionEndDate from notes if needed
+      let promotionEndDate = storeTip.promotionEndDate;
+      let specialOffers = null;
+      let openingDate = null;
+      
+      if (storeTip.notes) {
+        try {
+          const notesData = JSON.parse(storeTip.notes);
+          if (!promotionEndDate && notesData.promotionEndDate) {
+            promotionEndDate = new Date(notesData.promotionEndDate);
+          }
+          if (notesData.specialOffers) {
+            specialOffers = notesData.specialOffers;
+          }
+          if (notesData.openingDate) {
+            openingDate = new Date(notesData.openingDate);
+          }
+        } catch (e) {
+          // Ignore JSON parse errors
+        }
+      }
+      
       // Create new store from tip
       const newStore = await prisma.store.create({
         data: {
@@ -46,8 +67,12 @@ export async function PUT(
           zipCode: storeTip.zipCode,
           phone: 'N/A',
           email: storeTip.submitterEmail,
-          closingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          website: storeTip.website,
+          closingDate: storeTip.storeType === 'closing' ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null,
+          openingDate: openingDate,
+          promotionEndDate: promotionEndDate,
           discountPercentage: discountValue,
+          specialOffers: specialOffers,
           inventoryDescription: 'Submitted via tip from shopper',
           ownerName: 'Unknown (Shopper Tip)',
           contactPreference: 'email',
@@ -55,7 +80,8 @@ export async function PUT(
           latitude: storeTip.latitude,
           longitude: storeTip.longitude,
           isApproved: true,
-          storeType: storeTip.storeType || 'closing'
+          storeType: storeTip.storeType || 'closing',
+          isOnlineStore: storeTip.isOnlineStore || false
         }
       });
 

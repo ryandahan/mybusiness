@@ -26,6 +26,7 @@ interface Store {
   isOnlineStore?: boolean;
   closingDate?: string;
   openingDate?: string;
+  promotionEndDate?: string;
   discountPercentage: number;
   inventoryDescription: string;
   reasonForClosing?: string;
@@ -122,9 +123,13 @@ export function StoreDetailContent({ id }: { id: string }) {
 
   const isOpeningStore = store.storeType === 'opening';
   const isOnlineStore = store.isOnlineStore || store.storeType === 'online';
-  const relevantDate = isOpeningStore
-    ? (store.openingDate ? new Date(store.openingDate).toLocaleDateString() : 'Not specified')
-    : (store.closingDate ? new Date(store.closingDate).toLocaleDateString() : 'Not specified');
+  
+  // Calculate relevant date based on store type
+  const relevantDate = isOnlineStore
+    ? (store.promotionEndDate ? new Date(store.promotionEndDate).toLocaleDateString() : 'Not specified')
+    : isOpeningStore
+      ? (store.openingDate ? new Date(store.openingDate).toLocaleDateString() : 'Not specified')
+      : (store.closingDate ? new Date(store.closingDate).toLocaleDateString() : 'Not specified');
 
   return (
     <main className="flex min-h-screen flex-col">

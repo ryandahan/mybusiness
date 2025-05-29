@@ -75,92 +75,33 @@ export default function About() {
         </div>
       </section>
 
-      {/* Our Impact */}
-      <section className="py-16">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Our Impact</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            <div className="text-center">
-              <div className="bg-blue-100 p-4 rounded-full inline-flex items-center justify-center mb-4">
-                <Store size={32} className="text-blue-600" />
-              </div>
-              <h3 className="text-2xl font-bold mb-2">1,500+</h3>
-              <p className="text-gray-600">Businesses supported through closing transitions</p>
-            </div>
-            
-            <div className="text-center">
-              <div className="bg-green-100 p-4 rounded-full inline-flex items-center justify-center mb-4">
-                <Users size={32} className="text-green-600" />
-              </div>
-              <h3 className="text-2xl font-bold mb-2">250,000+</h3>
-              <p className="text-gray-600">Shoppers connected with closing sales</p>
-            </div>
-            
-            <div className="text-center">
-              <div className="bg-purple-100 p-4 rounded-full inline-flex items-center justify-center mb-4">
-                <BarChart size={32} className="text-purple-600" />
-              </div>
-              <h3 className="text-2xl font-bold mb-2">$25M+</h3>
-              <p className="text-gray-600">In inventory liquidated efficiently</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Team */}
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Our Team</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">Our Founder</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+          <div className="max-w-md mx-auto">
             <div className="bg-white rounded-lg overflow-hidden shadow-md">
               <div className="h-48 bg-gray-200">
                 <img 
-                  src="https://placehold.co/400x300?text=Team+Member" 
-                  alt="CEO" 
+                  src="https://placehold.co/400x300?text=Founder" 
+                  alt="Founder" 
                   className="w-full h-full object-cover" 
                 />
               </div>
-              <div className="p-5 text-center">
+              <div className="p-6 text-center">
                 <h3 className="font-bold text-xl mb-1">RAEEAN AHMED</h3>
-                <p className="text-gray-600 mb-4">Co-Founder & CEO</p>
+                <p className="text-gray-600 mb-4">Founder</p>
                 <p className="text-gray-700 text-sm">
-                  computer scientist at the AFRL (air focre research lab) and a tech entrepreneur with a passion for improving peoples lives through technology.
-                </p>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-lg overflow-hidden shadow-md">
-              <div className="h-48 bg-gray-200">
-                <img 
-                  src="https://placehold.co/400x300?text=Team+Member" 
-                  alt="CTO" 
-                  className="w-full h-full object-cover" 
-                />
-              </div>
-              <div className="p-5 text-center">
-                <h3 className="font-bold text-xl mb-1">MD RAGHD AHMED</h3>
-                <p className="text-gray-600 mb-4">Co-Founder & CTO</p>
-                <p className="text-gray-700 text-sm">
-                doctor of medicine at harvard medical school and a tech entrepreneur with a passion for improving peoples lives through technology.
-                </p>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-lg overflow-hidden shadow-md">
-              <div className="h-48 bg-gray-200">
-                <img 
-                  src="https://placehold.co/400x300?text=Team+Member" 
-                  alt="COO" 
-                  className="w-full h-full object-cover" 
-                />
-              </div>
-              <div className="p-5 text-center">
-                <h3 className="font-bold text-xl mb-1">Morgan Chen</h3>
-                <p className="text-gray-600 mb-4">Chief Operating Officer</p>
-                <p className="text-gray-700 text-sm">
-                  Operations expert specialized in retail supply chain and logistics.
+                  I believe everyone deserves to keep more money in their pocket while discovering amazing local businesses.
+                  <br/><br/>
+                  I created Discounts Map because I care about customers not missing great deals and business owners struggling to get their offers noticed. Traditional advertising can be expensive, and many amazing deals go unnoticed.
+                  <br/><br/>
+                  Whether you're a new store looking to attract customers or a closing business needing to clear inventory quickly, DiscountsMap connects you with shoppers who truly want what you're offering.
+                  <br/><br/>
+                  That's why Discounts Map is completely free—no ads, no data selling, no hidden fees. Your savings and privacy matter more than profit.
+                  <br/><br/>
+                  Your success is my success.
                 </p>
               </div>
             </div>

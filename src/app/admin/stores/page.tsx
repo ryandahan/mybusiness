@@ -9,7 +9,7 @@ import { Store } from '@/types/store';
 interface AdminStore extends Store {
   isFeatured?: boolean;
   isOnlineStore?: boolean;
-  promotionEndDate?: string; // Added promotion end date field
+  // promotionEndDate is now inherited from Store
 }
 
 export default function AdminStoresPage() {

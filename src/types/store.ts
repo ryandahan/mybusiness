@@ -19,6 +19,7 @@ export interface StoreData {
   specialOffers?: string;
   inventoryDescription: string;
   reasonForTransition?: string;
+  reasonForClosing?: string;  // Added for compatibility
   ownerName: string;
   contactPreference: 'email' | 'phone';
   storeImageUrl?: string;
@@ -33,6 +34,10 @@ export interface StoreData {
   updatedAt?: string;
   userId?: string;
   storeImages?: string[];     // For compatibility with map components
+  images?: Array<{ id: string; url: string; storeId: string; }>;  // Added for DB relation
+  isStoreTip?: boolean;       // Added for admin interface
+  submitterEmail?: string;    // Added for admin interface
+  notes?: string;            // Added for admin interface
 }
 
 // Simplified interface for admin dashboard and listing views
@@ -45,7 +50,7 @@ export interface Store {
   storeType?: 'opening' | 'closing' | 'online';  // Added 'online' type
   closingDate?: string;
   openingDate?: string;
-  promotionEndDate?: string;  // ADDED THIS LINE
+  promotionEndDate?: string;
   discountPercentage?: number | null;
   isApproved: boolean;
   isFeatured?: boolean;
@@ -57,6 +62,23 @@ export interface Store {
   isDefaultLocation?: boolean;
   website?: string;           // Added for online stores
   address?: string;           // Added for consistency
+  phone?: string;             // Added for consistency
+  email?: string;             // Added for consistency
+  specialOffers?: string;     // Added for consistency
+  inventoryDescription?: string;  // Added for consistency
+  reasonForClosing?: string;  // Added for consistency
+  reasonForTransition?: string;  // Added for consistency
+  ownerName?: string;         // Added for consistency
+  contactPreference?: string; // Added for consistency
+  storeImageUrl?: string | null;  // Added for consistency
+  storeImages?: string[];     // Added for consistency
+  verificationDocUrl?: string | null;  // Added for consistency
+  updatedAt?: string;         // Added for consistency
+  userId?: string;            // Added for consistency
+  images?: Array<{ id: string; url: string; storeId: string; }>;  // Added for DB relation
+  isStoreTip?: boolean;       // Added for admin interface
+  submitterEmail?: string;    // Added for admin interface
+  notes?: string;            // Added for admin interface
 }
 
 // Interface for shopper submissions
@@ -71,7 +93,7 @@ export interface StoreTip {
   submitterEmail: string;
   storeType?: 'opening' | 'closing' | 'online';  // Added 'online' type
   openingDate?: string;
-  promotionEndDate?: string;  // ADDED THIS LINE
+  promotionEndDate?: string;
   discountPercentage?: number | null;
   specialOffers?: string;
   storeImageUrl?: string | null;
@@ -110,7 +132,7 @@ export interface StoreFormData {
   // Type-specific fields
   closingDate?: string;
   openingDate?: string;
-  promotionEndDate?: string;  // ADDED THIS LINE
+  promotionEndDate?: string;
   discountPercentage?: number;
   specialOffers?: string;
   reasonForTransition?: string;
@@ -157,7 +179,7 @@ export interface StoreValidationErrors {
   contactPreference?: string;
   closingDate?: string;
   openingDate?: string;
-  promotionEndDate?: string;  // ADDED THIS LINE
+  promotionEndDate?: string;
   discountPercentage?: string;
   general?: string;
 }

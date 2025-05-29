@@ -11,15 +11,14 @@ model Store {
   id                   String       @id @default(cuid())
   businessName         String
   category             String
-  address              String?      // Changed from String to String? for online stores
-  city                 String?      // Changed from String to String? for online stores
-  state                String?      // Changed from String to String? for online stores
-  zipCode              String?      // Changed from String to String? for online stores
+  address              String?
+  city                 String?
+  state                String?
+  zipCode              String?
   phone                String
   email                String
   website              String?
   closingDate          DateTime?
-  promotionEndDate     DateTime?    // Added for promotion end dates
   discountPercentage   Int?
   inventoryDescription String
   ownerName            String
@@ -35,9 +34,10 @@ model Store {
   isFeatured           Boolean      @default(false)
   openingDate          DateTime?
   specialOffers        String?
-  storeType            String?      // Will support 'opening' | 'closing' | 'online'
+  storeType            String?
   reasonForClosing     String?
-  isOnlineStore        Boolean      @default(false)  // New field for online stores
+  isOnlineStore        Boolean      @default(false)
+  promotionEndDate     DateTime?
   user                 User?        @relation(fields: [userId], references: [id])
   images               StoreImage[]
 
@@ -45,7 +45,7 @@ model Store {
   @@index([isFeatured])
   @@index([city, state])
   @@index([storeType])
-  @@index([isOnlineStore])  // New index for filtering online stores
+  @@index([isOnlineStore])
 }
 
 model StoreImage {
@@ -79,10 +79,10 @@ model StoreTip {
   id                 String          @id @default(cuid())
   storeName          String
   category           String
-  address            String?         // Changed from String to String? for online stores
-  city               String?         // Changed from String to String? for online stores
-  state              String?         // Changed from String to String? for online stores
-  zipCode            String?         // Changed from String to String? for online stores
+  address            String?
+  city               String?
+  state              String?
+  zipCode            String?
   submitterEmail     String
   storeImageUrl      String?
   latitude           Float?
@@ -92,14 +92,14 @@ model StoreTip {
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
   discountPercentage Int?
-  storeType          String          @default("closing")  // Will support 'online' too
-  isOnlineStore      Boolean         @default(false)     // New field for online stores
-  website            String?         // New field for online store URLs
-  openingDate        DateTime?       // Added for opening stores
-  promotionEndDate   DateTime?       // Added for promotion end dates
+  storeType          String          @default("closing")
+  isOnlineStore      Boolean         @default(false)
+  website            String?
+  openingDate        DateTime?
+  promotionEndDate   DateTime?
   images             StoreTipImage[]
 
-  @@index([isOnlineStore])  // New index for filtering online store tips
+  @@index([isOnlineStore])
 }
 
 model StoreTipImage {

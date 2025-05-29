@@ -6,14 +6,14 @@ import { Filter, Tag, Calendar, MapPin, Search, Globe, Store, Building } from 'l
 // Define the enhanced props type with online store support
 interface FilterPanelProps {
   filters: {
-    storeType: 'closing' | 'opening' | 'online' | 'all';  // Added 'online'
+    storeType: 'closing' | 'opening' | 'online' | 'all';
     category: string;
     minDiscount: number;
     maxDistance: number;
     closingBefore: string;
     searchQuery: string;
-    isOnlineStore?: boolean;  // New: filter by online store status
-    hasPhysicalLocation?: boolean;  // New: filter by physical location presence
+    isOnlineStore?: boolean;
+    hasPhysicalLocation?: boolean;
   };
   setFilters: React.Dispatch<React.SetStateAction<{
     storeType: 'closing' | 'opening' | 'online' | 'all';
@@ -50,11 +50,11 @@ const storeCategories = [
 
 const FilterPanel: React.FC<FilterPanelProps> = ({ filters, setFilters }) => {
   // Local state for the search input - only updates filters when button is clicked
-  const [localSearchQuery, setLocalSearchQuery] = useState(filters.searchQuery);
+  const [localSearchQuery, setLocalSearchQuery] = useState(filters.searchQuery || '');
 
   // Update local search when filters.searchQuery changes from external sources
   useEffect(() => {
-    setLocalSearchQuery(filters.searchQuery);
+    setLocalSearchQuery(filters.searchQuery || '');
   }, [filters.searchQuery]);
 
   // Handle search submission
@@ -82,12 +82,15 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, setFilters }) => {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
+    
+    // Handle numeric inputs properly
+    const processedValue = type === 'range' || type === 'number' ? Number(value) : value;
     
     // Handle all non-search filters normally (immediate update)
     setFilters(prev => ({
       ...prev,
-      [name]: value
+      [name]: processedValue
     }));
   };
 
@@ -126,7 +129,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, setFilters }) => {
       
       <div className="space-y-4">
         {/* Search within results */}
-        {!filters.searchQuery && (
+        {!(filters.searchQuery || '').trim() && (
           <div>
             <label className="flex items-center mb-2 text-sm font-medium">
               <Search size={16} className="mr-2 text-gray-500" />
@@ -158,7 +161,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, setFilters }) => {
           </div>
         )}
 
-        {/* Store Location Type Filter - NEW */}
+        {/* Store Location Type Filter */}
         <div>
           <label className="flex items-center mb-2 text-sm font-medium">
             <Building size={16} className="mr-2 text-gray-500" />
@@ -220,7 +223,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, setFilters }) => {
           </label>
           <select 
             name="category"
-            value={filters.category}
+            value={filters.category || ''}
             onChange={handleChange}
             className="w-full p-2 border rounded-md"
           >
@@ -233,7 +236,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, setFilters }) => {
           </select>
         </div>
         
-        {/* Discount filter - show for closing stores, all stores, or online stores */}
+        {/* Discount filter */}
         {shouldShowDiscountFilter() && (
           <div>
             <label className="flex items-center mb-2 text-sm font-medium">
@@ -247,11 +250,11 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, setFilters }) => {
                 min="0"
                 max="90"
                 step="10"
-                value={filters.minDiscount}
+                value={filters.minDiscount || 0}
                 onChange={handleChange}
                 className="w-full"
               />
-              <span className="ml-2 text-blue-600 font-medium">{filters.minDiscount}%</span>
+              <span className="ml-2 text-blue-600 font-medium">{filters.minDiscount || 0}%</span>
             </div>
             <div className="text-xs text-gray-500 mt-1">
               {filters.storeType === 'online' ? 'Current promotions' : 'Closing sale discounts'}
@@ -259,7 +262,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, setFilters }) => {
           </div>
         )}
         
-        {/* Distance filter - only show for physical stores */}
+        {/* Distance filter */}
         {shouldShowDistanceFilter() && (
           <div>
             <label className="flex items-center mb-2 text-sm font-medium">
@@ -273,11 +276,11 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, setFilters }) => {
                 min="10"
                 max="500"
                 step="10"
-                value={filters.maxDistance}
+                value={filters.maxDistance || 50}
                 onChange={handleChange}
                 className="w-full"
               />
-              <span className="ml-2 text-blue-600 font-medium">{filters.maxDistance} mi</span>
+              <span className="ml-2 text-blue-600 font-medium">{filters.maxDistance || 50} mi</span>
             </div>
             <div className="text-xs text-gray-500 mt-1">
               From your location (physical stores only)
@@ -285,7 +288,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, setFilters }) => {
           </div>
         )}
         
-        {/* Date filter - dynamically change label based on store type */}
+        {/* Date filter */}
         {filters.storeType !== 'online' && (
           <div>
             <label className="flex items-center mb-2 text-sm font-medium">
@@ -299,7 +302,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, setFilters }) => {
             <input
               type="date"
               name="closingBefore"
-              value={filters.closingBefore}
+              value={filters.closingBefore || ''}
               onChange={handleChange}
               className="w-full p-2 border rounded-md"
             />
@@ -307,7 +310,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, setFilters }) => {
         )}
 
         {/* Search results info */}
-        {filters.searchQuery && (
+        {(filters.searchQuery || '').trim() && (
           <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-md">
             <div className="flex items-center text-sm text-orange-800">
               <Search size={14} className="mr-2" />

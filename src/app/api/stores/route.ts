@@ -157,6 +157,7 @@ export async function POST(req: NextRequest) {
     } else if (storeType === 'opening') {
       const openingDateStr = formData.get('openingDate') as string;
       const specialOffers = formData.get('specialOffers') as string;
+      const promotionEndDateStr = formData.get('promotionEndDate') as string;
       
       if (openingDateStr) {
         storeData.openingDate = new Date(openingDateStr);
@@ -164,6 +165,26 @@ export async function POST(req: NextRequest) {
       
       if (specialOffers) {
         storeData.specialOffers = specialOffers;
+      }
+      
+      if (promotionEndDateStr) {
+        storeData.promotionEndDate = new Date(promotionEndDateStr);
+      }
+    } else if (storeType === 'online') {
+      const specialOffers = formData.get('specialOffers') as string;
+      const discountStr = formData.get('discountPercentage') as string;
+      const promotionEndDateStr = formData.get('promotionEndDate') as string;
+      
+      if (specialOffers) {
+        storeData.specialOffers = specialOffers;
+      }
+      
+      if (discountStr) {
+        storeData.discountPercentage = parseInt(discountStr);
+      }
+      
+      if (promotionEndDateStr) {
+        storeData.promotionEndDate = new Date(promotionEndDateStr);
       }
     }
     
@@ -173,7 +194,8 @@ export async function POST(req: NextRequest) {
       isOnlineStore: storeData.isOnlineStore,
       hasLocation: !!storeData.latitude
     });
-    
+    console.log('[DEBUG] promotionEndDate:', storeData.promotionEndDate);
+
     // Create store in database with related images
     const store = await prisma.store.create({
       data: {
