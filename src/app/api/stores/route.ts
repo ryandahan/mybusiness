@@ -245,9 +245,43 @@ export async function GET(req: NextRequest) {
       hasPhysicalLocation
     });
     
+    // Get current date for filtering expired stores
+    const currentDate = new Date();
+    
     // Build where clause
     const whereClause: any = {
       isApproved: true,
+      // Filter out expired stores
+      AND: [
+        {
+          OR: [
+            // For closing stores, only show if closingDate is in the future or null
+            {
+              storeType: 'closing',
+              OR: [
+                { closingDate: null },
+                { closingDate: { gte: currentDate } }
+              ]
+            },
+            // For online stores, only show if promotionEndDate is in the future or null
+            {
+              isOnlineStore: true,
+              OR: [
+                { promotionEndDate: null },
+                { promotionEndDate: { gte: currentDate } }
+              ]
+            },
+            // For opening stores, check promotionEndDate if it exists
+            {
+              storeType: 'opening',
+              OR: [
+                { promotionEndDate: null },
+                { promotionEndDate: { gte: currentDate } }
+              ]
+            }
+          ]
+        }
+      ]
     };
     
     // Add text search functionality

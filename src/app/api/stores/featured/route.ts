@@ -7,10 +7,40 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 export async function GET() {
   try {
+    // Get current date for filtering expired stores
+    const currentDate = new Date();
+    
     const featuredStores = await prisma.store.findMany({
       where: {
         isFeatured: true,
-        isApproved: true
+        isApproved: true,
+        // Filter out expired stores
+        OR: [
+          // For closing stores, only show if closingDate is in the future or null
+          {
+            storeType: 'closing',
+            OR: [
+              { closingDate: null },
+              { closingDate: { gte: currentDate } }
+            ]
+          },
+          // For online stores, only show if promotionEndDate is in the future or null
+          {
+            isOnlineStore: true,
+            OR: [
+              { promotionEndDate: null },
+              { promotionEndDate: { gte: currentDate } }
+            ]
+          },
+          // For opening stores, check promotionEndDate if it exists
+          {
+            storeType: 'opening',
+            OR: [
+              { promotionEndDate: null },
+              { promotionEndDate: { gte: currentDate } }
+            ]
+          }
+        ]
       },
       include: {
         images: true

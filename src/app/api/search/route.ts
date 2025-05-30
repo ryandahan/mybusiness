@@ -16,11 +16,43 @@ export async function GET(req: NextRequest) {
     }
 
     const searchTerm = query.trim().toLowerCase();
+    const currentDate = new Date();
 
     // Search through approved stores
     const stores = await prisma.store.findMany({
       where: {
         isApproved: true,
+        // Filter out expired stores
+        AND: [
+          {
+            OR: [
+              // For closing stores, only show if closingDate is in the future or null
+              {
+                storeType: 'closing',
+                OR: [
+                  { closingDate: null },
+                  { closingDate: { gte: currentDate } }
+                ]
+              },
+              // For online stores, only show if promotionEndDate is in the future or null
+              {
+                isOnlineStore: true,
+                OR: [
+                  { promotionEndDate: null },
+                  { promotionEndDate: { gte: currentDate } }
+                ]
+              },
+              // For opening stores, check promotionEndDate if it exists
+              {
+                storeType: 'opening',
+                OR: [
+                  { promotionEndDate: null },
+                  { promotionEndDate: { gte: currentDate } }
+                ]
+              }
+            ]
+          }
+        ],
         OR: [
           // Search by business name
           {

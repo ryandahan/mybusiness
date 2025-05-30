@@ -20,9 +20,47 @@ export async function GET(req: NextRequest) {
     // Set isApproved filter based on status
     const isApproved = status === 'approved';
     
+    // Get current date for filtering expired stores
+    const currentDate = new Date();
+    
+    // Build where clause for stores
+    const storeWhereClause: any = {
+      isApproved
+    };
+    
+    // Only filter expired stores for approved stores view
+    if (isApproved) {
+      storeWhereClause.OR = [
+        // For closing stores, only show if closingDate is in the future or null
+        {
+          storeType: 'closing',
+          OR: [
+            { closingDate: null },
+            { closingDate: { gte: currentDate } }
+          ]
+        },
+        // For online stores, only show if promotionEndDate is in the future or null
+        {
+          isOnlineStore: true,
+          OR: [
+            { promotionEndDate: null },
+            { promotionEndDate: { gte: currentDate } }
+          ]
+        },
+        // For opening stores, check promotionEndDate if it exists
+        {
+          storeType: 'opening',
+          OR: [
+            { promotionEndDate: null },
+            { promotionEndDate: { gte: currentDate } }
+          ]
+        }
+      ];
+    }
+    
     // Fetch stores from database based on approval status
     const stores = await prisma.store.findMany({
-      where: { isApproved },
+      where: storeWhereClause,
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
