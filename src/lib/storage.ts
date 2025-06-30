@@ -1,14 +1,11 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 
-// Initialize S3 Client
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION || '',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
-  }
-});
+// Initialize Supabase Client
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function uploadFile(file: File, folder: string): Promise<string> {
   try {
@@ -16,23 +13,30 @@ export async function uploadFile(file: File, folder: string): Promise<string> {
     const fileExtension = file.name.split('.').pop();
     const fileName = `${folder}/${uuidv4()}.${fileExtension}`;
     
-    // Convert file to buffer
-    const buffer = Buffer.from(await file.arrayBuffer());
+    // Convert file to array buffer
+    const fileBuffer = await file.arrayBuffer();
     
-    // Upload to S3
-    const params = {
-      Bucket: process.env.AWS_S3_BUCKET_NAME,
-      Key: fileName,
-      Body: buffer,
-      ContentType: file.type
-    };
+    // Upload to Supabase Storage
+    const { data, error } = await supabase.storage
+      .from('uploads') // bucket name
+      .upload(fileName, fileBuffer, {
+        contentType: file.type,
+        upsert: false
+      });
     
-    await s3Client.send(new PutObjectCommand(params));
+    if (error) {
+      console.error('Error uploading file to Supabase:', error);
+      throw new Error(`Failed to upload file: ${error.message}`);
+    }
     
-    // Return the URL
-    return `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
+    // Get the public URL
+    const { data: urlData } = supabase.storage
+      .from('uploads')
+      .getPublicUrl(fileName);
+    
+    return urlData.publicUrl;
   } catch (error) {
-    console.error('Error uploading file to S3:', error);
+    console.error('Error uploading file:', error);
     throw new Error('Failed to upload file');
   }
 }
