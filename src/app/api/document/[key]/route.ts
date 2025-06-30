@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { createClient } from '@supabase/supabase-js';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION || 'us-east-2',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
-  }
-});
+// Initialize Supabase Client
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function GET(
   req: NextRequest,
@@ -31,16 +28,22 @@ export async function GET(
     // Always add the verification-docs/ prefix and .pdf extension
     const fullKey = `verification-docs/${key}.pdf`;
     
-    console.log('Accessing S3 file with key:', fullKey);
+    console.log('Accessing Supabase file with key:', fullKey);
     
-    const command = new GetObjectCommand({
-      Bucket: 'store-transition',
-      Key: fullKey
-    });
+    // Generate a signed URL for the document (expires in 15 minutes)
+    const { data, error } = await supabase.storage
+      .from('uploads')
+      .createSignedUrl(fullKey, 900); // 900 seconds = 15 minutes
     
-    const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 900 });
+    if (error) {
+      console.error('Error generating signed URL:', error);
+      return NextResponse.json({ 
+        error: 'Failed to access document',
+        details: error.message
+      }, { status: 500 });
+    }
     
-    return NextResponse.json({ url: signedUrl });
+    return NextResponse.json({ url: data.signedUrl });
   } catch (error) {
     console.error('Error generating document URL:', error);
     return NextResponse.json({ 

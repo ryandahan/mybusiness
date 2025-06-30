@@ -4,19 +4,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { PrismaClient } from '@prisma/client';
 import { authOptions } from '@/lib/auth';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 
 const prisma = new PrismaClient();
 
-// Configure AWS S3 with your specific credentials
-const s3Client = new S3Client({
-  region: "us-east-2",
-  credentials: {
-    accessKeyId: "AKIAVY2PG5G5KJLNR7T6",
-    secretAccessKey: "GMUAr4q0uYcCtVhGqCokZIYLyBa1GOIf3pc4pRmy"
-  }
-});
+// Initialize Supabase Client
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,23 +30,30 @@ export async function POST(request: NextRequest) {
     }
 
     const fileExtension = file.name.split('.').pop();
-    const contentType = file.type;
     const fileName = `blog-images/${uuidv4()}.${fileExtension}`;
     
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    // Convert file to array buffer
+    const fileBuffer = await file.arrayBuffer();
 
-    const command = new PutObjectCommand({
-      Bucket: "store-transition",
-      Key: fileName,
-      Body: buffer,
-      ContentType: contentType
-    });
+    // Upload to Supabase Storage
+    const { data, error } = await supabase.storage
+      .from('uploads')
+      .upload(fileName, fileBuffer, {
+        contentType: file.type,
+        upsert: false
+      });
 
-    await s3Client.send(command);
-    const imageUrl = `https://store-transition.s3.us-east-2.amazonaws.com/${fileName}`;
+    if (error) {
+      console.error('Error uploading file to Supabase:', error);
+      return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
+    }
 
-    return NextResponse.json({ url: imageUrl });
+    // Get the public URL
+    const { data: urlData } = supabase.storage
+      .from('uploads')
+      .getPublicUrl(fileName);
+
+    return NextResponse.json({ url: urlData.publicUrl });
   } catch (error) {
     console.error('Error uploading file:', error);
     return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
